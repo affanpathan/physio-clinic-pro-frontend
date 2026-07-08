@@ -1,0 +1,15 @@
+#!/bin/bash
+echo "=== PhysioClinic Pro Setup ==="
+echo ""
+echo "Step 1: Creating PostgreSQL database..."
+psql -U postgres -c "CREATE DATABASE physio_db;" 2>/dev/null || echo "(Database may already exist, continuing...)"
+echo ""
+echo "Step 2: Installing Node.js dependencies..."
+npm install
+echo ""
+echo "=== Setup Complete ==="
+echo ""
+echo "To start the application, run:"
+echo "  npm start"
+echo ""
+echo "Then open: http://localhost:3000"
