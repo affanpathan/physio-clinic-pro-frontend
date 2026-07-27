@@ -3,6 +3,7 @@ import { Users, Calendar, TrendingUp, AlertCircle, Clock, Banknote } from 'lucid
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 
 const fmt = (n) => '₹' + Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 0 });
+const API_URL = import.meta.env.VITE_API_URL;
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload?.length) {
@@ -22,7 +23,7 @@ export default function Dashboard({ navigate }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/dashboard')
+    fetch('${API_URL}/api/dashboard')
       .then(r => r.json())
       .then(d => { setData(d); setLoading(false); })
       .catch(() => setLoading(false));
