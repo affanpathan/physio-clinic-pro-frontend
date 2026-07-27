@@ -24,7 +24,7 @@ export default function Dashboard({ navigate }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('${API_URL}/dashboard')
+    fetch('${API_URL}/api/dashboard')
       .then(r => r.json())
       .then(d => { setData(d); setLoading(false); })
       .catch(() => setLoading(false));
