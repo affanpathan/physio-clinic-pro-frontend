@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Search, Plus, X, Edit2, Activity, Eye } from 'lucide-react';
+const API_URL = process.env.REACT_APP_API_URL;
 
 const EMPTY_PATIENT = {
   first_name: '', last_name: '', phone: '', email: '',
@@ -19,7 +20,7 @@ export default function Patients({ navigate, setSelectedPatient }) {
 
   const load = useCallback(() => {
     setLoading(true);
-    fetch(`/api/patients${search ? `?search=${encodeURIComponent(search)}` : ''}`)
+    fetch(`{$API_URL}/patients${search ? `?search=${encodeURIComponent(search)}` : ''}`)
       .then(r => r.json())
       .then(d => { setPatients(d); setLoading(false); })
       .catch(() => setLoading(false));
@@ -39,7 +40,7 @@ export default function Patients({ navigate, setSelectedPatient }) {
     if (!form.first_name || !form.last_name) { setError('First and last name are required.'); return; }
     setSaving(true); setError('');
     try {
-      const url = editPatient ? `/api/patients/${editPatient.id}` : '/api/patients';
+      const url = editPatient ? `{$API_URL}/patients/${editPatient.id}` : '{$API_URL}/patients';
       const method = editPatient ? 'PUT' : 'POST';
       const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
       if (!res.ok) { const e = await res.json(); throw new Error(e.error); }

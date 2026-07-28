@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { ChevronLeft, ChevronRight, X, Plus } from 'lucide-react';
+const API_URL = process.env.REACT_APP_API_URL;
 
 const fmt = n => '₹' + Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -27,7 +28,7 @@ export default function Appointments() {
     setLoading(true);
     const start = startDate.toISOString().split('T')[0];
     const end = endDate.toISOString().split('T')[0];
-    fetch(`/api/appointments?start_date=${start}&end_date=${end}`)
+    fetch(`${API_URL}/appointments?start_date=${start}&end_date=${end}`)
       .then(r => r.json())
       .then(data => { setAppointments(Array.isArray(data) ? data : []); setLoading(false); })
       .catch(() => { setAppointments([]); setLoading(false); });

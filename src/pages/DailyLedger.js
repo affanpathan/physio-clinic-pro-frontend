@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, X, Trash2, ChevronLeft, ChevronRight, TrendingUp, TrendingDown } from 'lucide-react';
+const API_URL = process.env.REACT_APP_API_URL;
 
 const EXPENSE_CATEGORIES = ['Rent', 'Utilities', 'Salaries', 'Equipment', 'Medicines/Supplies', 'Maintenance', 'Marketing', 'Insurance', 'Miscellaneous'];
 const INCOME_CATEGORIES = ['Therapy Fee', 'Consultation', 'Package Sale', 'Other Income'];
@@ -70,7 +71,7 @@ export default function DailyLedger() {
 
   const loadEntries = useCallback(() => {
     setLoading(true);
-    let url = '/api/ledger?';
+    let url = `{$API_URL}/api/ledger?`;
     if (viewMode === 'day') url += `date=${date}`;
     else if (dateFrom && dateTo) url += `date_from=${dateFrom}&date_to=${dateTo}`;
     fetch(url)
@@ -90,7 +91,7 @@ export default function DailyLedger() {
 
   useEffect(() => {
     if (patSearch.length >= 2) {
-      fetch(`/api/patients?search=${encodeURIComponent(patSearch)}`)
+      fetch(`{$API_URL}/patients?search=${encodeURIComponent(patSearch)}`)
         .then(r => r.json()).then(setPatients).catch(() => setPatients([]));
     } else {
       setPatients([]);
@@ -123,7 +124,7 @@ export default function DailyLedger() {
         ...form,
         patient_id: form.patient_id ? form.patient_id : null,
       };
-      const res = await fetch('/api/ledger', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      const res = await fetch('{$API_URL}/ledger', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       if (!res.ok) { const e = await res.json(); throw new Error(e.error); }
       setShowModal(false); loadEntries();
     } catch (e) { setError(e.message); }
@@ -132,7 +133,7 @@ export default function DailyLedger() {
 
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this entry?')) return;
-    await fetch(`/api/ledger/${id}`, { method: 'DELETE' });
+    await fetch(`{$API_URL}/ledger/${id}`, { method: 'DELETE' });
     loadEntries();
   };
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, X, ChevronLeft, ChevronRight, Edit2 } from 'lucide-react';
+const API_URL = process.env.REACT_APP_API_URL;
 
 const THERAPY_TYPES = ['Manual Therapy', 'Exercise Therapy', 'Electrotherapy', 'Ultrasound', 'TENS', 'Heat Therapy', 'Cold Therapy', 'Dry Needling', 'Cupping', 'Hydrotherapy', 'Taping', 'Post-surgical Rehab', 'Sports Rehab', 'Other'];
 
@@ -28,7 +29,7 @@ export default function Visits() {
   const loadVisits = useCallback(() => {
     setLoading(true);
     const params = viewMode === 'day' ? `?date=${date}` : '';
-    fetch(`/api/visits${params}`)
+    fetch(`{$API_URL}/visits${params}`)
       .then(r => r.json())
       .then(d => { setVisits(d); setLoading(false); })
       .catch(() => setLoading(false));
@@ -38,7 +39,7 @@ export default function Visits() {
 
   useEffect(() => {
     if (patSearch.length >= 2) {
-      fetch(`/api/patients?search=${encodeURIComponent(patSearch)}`)
+      fetch(`{$API_URL}/patients?search=${encodeURIComponent(patSearch)}`)
         .then(r => r.json()).then(setPatients);
     } else { setPatients([]); }
   }, [patSearch]);
@@ -66,7 +67,7 @@ export default function Visits() {
         ...form,
         payment_status: computePaymentStatus(form.fee_charged, form.amount_paid),
       };
-      const url = editVisit ? `/api/visits/${editVisit.id}` : '/api/visits';
+      const url = editVisit ? `{$API_URL}/visits/${editVisit.id}` : '{$API_URL}/visits';
       const method = editVisit ? 'PUT' : 'POST';
       const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       if (!res.ok) { const e = await res.json(); throw new Error(e.error); }

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Search, X, CreditCard, Calendar, FileText } from 'lucide-react';
+const API_URL = process.env.REACT_APP_API_URL;
 
 const fmt = n => '₹' + Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -12,7 +13,7 @@ export default function PatientLedger({ selectedPatient, setSelectedPatient }) {
 
   useEffect(() => {
     if (search.length >= 2) {
-      fetch(`/api/patients?search=${encodeURIComponent(search)}`)
+      fetch(`{$API_URL}/patients?search=${encodeURIComponent(search)}`)
         .then(r => r.json()).then(setPatients);
     } else setPatients([]);
   }, [search]);
@@ -26,7 +27,7 @@ export default function PatientLedger({ selectedPatient, setSelectedPatient }) {
 
   const loadLedger = (patientId) => {
     setLoading(true);
-    fetch(`/api/patient-ledger/${patientId}`)
+    fetch(`{$API_URL}/patient-ledger/${patientId}`)
       .then(r => r.json())
       .then(d => { setLedger(d); setLoading(false); })
       .catch(() => setLoading(false));
