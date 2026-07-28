@@ -13,7 +13,7 @@ export default function PatientLedger({ selectedPatient, setSelectedPatient }) {
 
   useEffect(() => {
     if (search.length >= 2) {
-      fetch(`{$API_URL}/patients?search=${encodeURIComponent(search)}`)
+      fetch(`${API_URL}/patients?search=${encodeURIComponent(search)}`)
         .then(r => r.json()).then(setPatients);
     } else setPatients([]);
   }, [search]);
@@ -27,7 +27,7 @@ export default function PatientLedger({ selectedPatient, setSelectedPatient }) {
 
   const loadLedger = (patientId) => {
     setLoading(true);
-    fetch(`{$API_URL}/patient-ledger/${patientId}`)
+    fetch(`${API_URL}/patient-ledger/${patientId}`)
       .then(r => r.json())
       .then(d => { setLedger(d); setLoading(false); })
       .catch(() => setLoading(false));

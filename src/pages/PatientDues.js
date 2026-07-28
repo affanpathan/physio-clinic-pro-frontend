@@ -22,7 +22,7 @@ export default function PatientDues() {
 
   const loadDues = useCallback(() => {
     setLoading(true);
-    let url = '{$API_URL}/patient-dues';
+    let url = `${API_URL}/patient-dues`;
     if (selectedPatient?.id) url += `?patient_id=${selectedPatient.id}`;
     fetch(url)
       .then(r => r.json())
@@ -34,7 +34,7 @@ export default function PatientDues() {
 
   useEffect(() => {
     if (patSearch.length >= 2) {
-      fetch(`{$API_URL}/patients?search=${encodeURIComponent(patSearch)}`)
+      fetch(`${API_URL}/patients?search=${encodeURIComponent(patSearch)}`)
         .then(r => r.json()).then(setPatients)
         .catch(() => setPatients([]));
     } else {
@@ -59,7 +59,7 @@ export default function PatientDues() {
     setLedgerModalOpen(true);
     setLedgerData(null);
     setLedgerLoading(true);
-    fetch(`{$API_URL}/patient-ledger/${patient.id}`)
+    fetch(`${API_URL}/patient-ledger/${patient.id}`)
       .then(r => r.json())
       .then(data => { setLedgerData(data); setLedgerLoading(false); })
       .catch(() => { setLedgerLoading(false); });

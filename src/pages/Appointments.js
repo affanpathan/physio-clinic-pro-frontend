@@ -41,7 +41,7 @@ export default function Appointments() {
 
   useEffect(() => {
     if (patSearch.length >= 2) {
-      fetch(`/api/patients?search=${encodeURIComponent(patSearch)}`)
+      fetch(`${API_URL}/patients?search=${encodeURIComponent(patSearch)}`)
         .then(r => r.json()).then(setPatients)
         .catch(() => setPatients([]));
     } else {
@@ -107,7 +107,7 @@ export default function Appointments() {
       return;
     }
     try {
-      const response = await fetch('/api/appointments', {
+      const response = await fetch(`${API_URL}/appointments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

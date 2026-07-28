@@ -71,7 +71,7 @@ export default function DailyLedger() {
 
   const loadEntries = useCallback(() => {
     setLoading(true);
-    let url = `{$API_URL}/api/ledger?`;
+    let url = `${API_URL}/ledger?`;
     if (viewMode === 'day') url += `date=${date}`;
     else if (dateFrom && dateTo) url += `date_from=${dateFrom}&date_to=${dateTo}`;
     fetch(url)
@@ -91,7 +91,7 @@ export default function DailyLedger() {
 
   useEffect(() => {
     if (patSearch.length >= 2) {
-      fetch(`{$API_URL}/patients?search=${encodeURIComponent(patSearch)}`)
+      fetch(`${API_URL}/patients?search=${encodeURIComponent(patSearch)}`)
         .then(r => r.json()).then(setPatients).catch(() => setPatients([]));
     } else {
       setPatients([]);
@@ -103,7 +103,7 @@ export default function DailyLedger() {
     setPatSearch(`${p.first_name} ${p.last_name}`);
     setPatients([]);
     try {
-      const res = await fetch(`/api/patient-ledger/${p.id}`);
+      const res = await fetch(`${API_URL}/patient-ledger/${p.id}`);
       if (!res.ok) return;
       const d = await res.json();
       const bal = d.summary?.balance_due ?? 0;
@@ -124,7 +124,7 @@ export default function DailyLedger() {
         ...form,
         patient_id: form.patient_id ? form.patient_id : null,
       };
-      const res = await fetch('{$API_URL}/ledger', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      const res = await fetch(`${API_URL}/ledger`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       if (!res.ok) { const e = await res.json(); throw new Error(e.error); }
       setShowModal(false); loadEntries();
     } catch (e) { setError(e.message); }
@@ -133,7 +133,7 @@ export default function DailyLedger() {
 
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this entry?')) return;
-    await fetch(`{$API_URL}/ledger/${id}`, { method: 'DELETE' });
+    await fetch(`${API_URL}/ledger/${id}`, { method: 'DELETE' });
     loadEntries();
   };
 
