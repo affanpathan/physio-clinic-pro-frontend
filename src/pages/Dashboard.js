@@ -3,7 +3,7 @@ import { Users, Calendar, TrendingUp, AlertCircle, Clock, Banknote } from 'lucid
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 
 const fmt = (n) => '₹' + Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 0 });
-const API_URL = process.env.REACT_APP_API_URL;
+const API_URL = process.env.REACT_APP_API_URL || '/api';
 console.log(API_URL);
 
 const CustomTooltip = ({ active, payload, label }) => {

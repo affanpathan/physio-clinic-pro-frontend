@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, X, ChevronLeft, ChevronRight, Edit2 } from 'lucide-react';
-const API_URL = process.env.REACT_APP_API_URL;
+const API_URL = process.env.REACT_APP_API_URL || '/api';
 
 const THERAPY_TYPES = ['Manual Therapy', 'Exercise Therapy', 'Electrotherapy', 'Ultrasound', 'TENS', 'Heat Therapy', 'Cold Therapy', 'Dry Needling', 'Cupping', 'Hydrotherapy', 'Taping', 'Post-surgical Rehab', 'Sports Rehab', 'Other'];
 
@@ -30,9 +30,20 @@ export default function Visits() {
     setLoading(true);
     const params = viewMode === 'day' ? `?date=${date}` : '';
     fetch(`${API_URL}/visits${params}`)
-      .then(r => r.json())
-      .then(d => { setVisits(d); setLoading(false); })
-      .catch(() => setLoading(false));
+      .then(async (r) => {
+        const data = await r.json().catch(() => null);
+        if (!r.ok) {
+          console.warn('Failed to load visits', data);
+          return [];
+        }
+        return Array.isArray(data) ? data : [];
+      })
+      .then((d) => { setVisits(d); setLoading(false); })
+      .catch((err) => {
+        console.error('Visit load error', err);
+        setVisits([]);
+        setLoading(false);
+      });
   }, [date, viewMode]);
 
   useEffect(() => { loadVisits(); }, [loadVisits]);
@@ -82,8 +93,9 @@ export default function Visits() {
     setPatients([]);
   };
 
-  const totalIncome = visits.reduce((s, v) => s + Number(v.amount_paid || 0), 0);
-  const totalCharged = visits.reduce((s, v) => s + Number(v.fee_charged || 0), 0);
+  const safeVisits = Array.isArray(visits) ? visits : [];
+  const totalIncome = safeVisits.reduce((s, v) => s + Number(v.amount_paid || 0), 0);
+  const totalCharged = safeVisits.reduce((s, v) => s + Number(v.fee_charged || 0), 0);
 
   const computePaymentStatus = (fee, paid) => {
     const feeValue = Number(fee || 0);

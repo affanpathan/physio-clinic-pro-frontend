@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, X, Trash2, ChevronLeft, ChevronRight, TrendingUp, TrendingDown } from 'lucide-react';
-const API_URL = process.env.REACT_APP_API_URL;
+const API_URL = process.env.REACT_APP_API_URL || '/api';
 
 const EXPENSE_CATEGORIES = ['Rent', 'Utilities', 'Salaries', 'Equipment', 'Medicines/Supplies', 'Maintenance', 'Marketing', 'Insurance', 'Miscellaneous'];
 const INCOME_CATEGORIES = ['Therapy Fee', 'Consultation', 'Package Sale', 'Other Income'];
