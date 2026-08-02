@@ -9,6 +9,7 @@ import PatientLedger from './pages/PatientLedger';
 import PatientDues from './pages/PatientDues';
 import ClinicMaster from './pages/ClinicMaster';
 import ClinicUsers from './pages/ClinicUsers';
+import Therapists from './pages/Therapists';
 import LandingPage from './pages/LandingPage';
 import './App.css';
 
@@ -18,6 +19,7 @@ const NAV = [
   { id: 'visits', label: 'Visits', icon: Calendar },
   { id: 'appointments', label: 'Appointments', icon: Clock },
   { id: 'daily-ledger', label: 'Daily Ledger', icon: BookOpen },
+  { id: 'therapists', label: 'Therapists', icon: Stethoscope },
   { id: 'patient-ledger', label: 'Patient Ledger', icon: Activity },
   { id: 'patient-dues', label: 'Patient Dues', icon: CreditCard },
 ];
@@ -31,11 +33,12 @@ export default function App() {
     const hash = window.location.hash.replace(/^#/, '').replace(/^\//, '').toLowerCase();
     const searchPage = new URLSearchParams(window.location.search).get('page')?.toLowerCase();
     const pathname = window.location.pathname.replace(/^\//, '').replace(/\/$/, '').toLowerCase();
-    const pathMatch = pathname.match(/(^|\/)(clinic-master|clinic-users)(\/|$)/);
+    const pathMatch = pathname.match(/(^|\/)(clinic-master|clinic-users|therapists)(\/|$)/);
     const effectivePath = pathMatch ? pathMatch[2] : null;
 
     if (hash === 'clinic-master' || searchPage === 'clinic-master' || effectivePath === 'clinic-master') return 'clinic-master';
     if (hash === 'clinic-users' || searchPage === 'clinic-users' || effectivePath === 'clinic-users') return 'clinic-users';
+    if (hash === 'therapists' || searchPage === 'therapists' || effectivePath === 'therapists') return 'therapists';
     return 'landing';
   });
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -97,7 +100,7 @@ export default function App() {
   const navigate = (p, patient = null) => {
     setPage(p);
     if (patient) setSelectedPatient(patient);
-    if (p !== 'clinic-master' && p !== 'clinic-users') {
+    if (p !== 'clinic-master' && p !== 'clinic-users' && p !== 'therapists') {
       setAdminAuthorized(false);
       setAdminPassword('');
       setAdminError('');
@@ -246,6 +249,7 @@ export default function App() {
           {page === 'patient-dues' && <PatientDues />}
           {page === 'clinic-master' && adminAuthorized && <ClinicMaster />}
           {page === 'clinic-users' && adminAuthorized && <ClinicUsers />}
+          {page === 'therapists' && <Therapists clinicId={clinicId} />}
         </div>
         {isAdminPage && !adminAuthorized && (
           <div className="modal-overlay" style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.75)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

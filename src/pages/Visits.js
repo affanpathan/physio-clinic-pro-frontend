@@ -2,20 +2,22 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, X, ChevronLeft, ChevronRight, Edit2 } from 'lucide-react';
 const API_URL = process.env.REACT_APP_API_URL || '/api';
 
-const THERAPY_TYPES = ['Manual Therapy', 'Exercise Therapy', 'Electrotherapy', 'Ultrasound', 'TENS', 'Heat Therapy', 'Cold Therapy', 'Dry Needling', 'Cupping', 'Hydrotherapy', 'Taping', 'Post-surgical Rehab', 'Sports Rehab', 'Other'];
+const THERAPY_TYPES = ['Bio Lite','Premium Plus','Manual Therapy', 'Exercise Therapy', 'Electrotherapy', 'Ultrasound', 'TENS', 'Heat Therapy', 'Cold Therapy', 'Dry Needling', 'Cupping', 'Hydrotherapy', 'Taping', 'Post-surgical Rehab', 'Sports Rehab', 'Other'];
 
 const EMPTY_VISIT = {
   patient_id: '', therapy_plan_id: '', visit_date: new Date().toISOString().split('T')[0],
-  visit_time: '09:00', therapist_name: '', therapy_type: '', duration_minutes: 60,
+  visit_time: '09:00', therapist_name: '', therapy_type: '', therapy_types: [], duration_minutes: 15,
   fee_charged: '', amount_paid: '', payment_method: 'cash', payment_status: 'paid',
   session_notes: '', chief_complaint: '', treatment_given: '',
 };
+
 
 const fmt = n => '₹' + Number(n || 0).toLocaleString('en-IN');
 
 export default function Visits() {
   const [visits, setVisits] = useState([]);
   const [patients, setPatients] = useState([]);
+  const [therapists, setTherapists] = useState([]);
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -55,6 +57,15 @@ export default function Visits() {
     } else { setPatients([]); }
   }, [patSearch]);
 
+  useEffect(() => {
+    fetch(`${API_URL}/therapists`)
+      .then(async (r) => {
+        const data = await r.json().catch(() => []);
+        setTherapists(Array.isArray(data) ? data : []);
+      })
+      .catch(() => setTherapists([]));
+  }, []);
+
   const shiftDate = (days) => {
     const d = new Date(date); d.setDate(d.getDate() + days);
     setDate(d.toISOString().split('T')[0]);
@@ -62,7 +73,8 @@ export default function Visits() {
 
   const openAdd = () => { setForm({ ...EMPTY_VISIT, visit_date: date }); setEditVisit(null); setError(''); setPatSearch(''); setShowModal(true); };
   const openEdit = (v) => {
-    setForm({ ...v, visit_date: v.visit_date?.split('T')[0] || date });
+    const ttypes = (v.therapy_types && v.therapy_types.length) ? v.therapy_types : (v.therapy_type ? [v.therapy_type] : []);
+    setForm({ ...v, visit_date: v.visit_date?.split('T')[0] || date, therapy_types: ttypes, therapy_type: ttypes[0] || (v.therapy_type || '') });
     setEditVisit(v);
     setPatSearch(`${v.first_name} ${v.last_name}`);
     setError('');
@@ -182,7 +194,7 @@ export default function Visits() {
                     </td>
                     <td style={{ fontVariantNumeric: 'tabular-nums' }}>{v.visit_date?.split('T')[0]}</td>
                     <td style={{ fontVariantNumeric: 'tabular-nums' }}>{v.visit_time?.slice(0,5) || '—'}</td>
-                    <td>{v.therapy_type || '—'}</td>
+                    <td>{(v.therapy_types && v.therapy_types.length) ? v.therapy_types.join(', ') : (v.therapy_type || '—')}</td>
                     <td>{v.duration_minutes} min</td>
                     <td className="amount-expense">{fmt(v.fee_charged)}</td>
                     <td className="amount-income">{fmt(v.amount_paid)}</td>
@@ -243,13 +255,22 @@ export default function Visits() {
                 </div>
                 <div className="form-group">
                   <label className="form-label">Therapist Name</label>
-                  <input className="form-input" value={form.therapist_name} onChange={e => setForm({ ...form, therapist_name: e.target.value })} />
+                  <select className="form-select" value={form.therapist_name} onChange={e => setForm({ ...form, therapist_name: e.target.value })}>
+                    <option value="">Select therapist</option>
+                    {therapists.map((therapist) => (
+                      <option key={therapist.id} value={therapist.therapist_name}>
+                        {therapist.therapist_name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div className="form-group">
                   <label className="form-label">Therapy Type</label>
-                  <select className="form-select" value={form.therapy_type} onChange={e => setForm({ ...form, therapy_type: e.target.value })}>
-                    <option value="">Select type</option>
-                    {THERAPY_TYPES.map(t => <option key={t}>{t}</option>)}
+                  <select multiple className="form-select" value={form.therapy_types || []} onChange={e => {
+                    const opts = Array.from(e.target.selectedOptions).map(o => o.value);
+                    setForm({ ...form, therapy_types: opts, therapy_type: opts[0] || '' });
+                  }} style={{ minHeight: 120 }}>
+                    {THERAPY_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
                 </div>
                 <div className="form-group">
