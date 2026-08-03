@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Calendar, TrendingUp, AlertCircle, Clock, Banknote } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { useCurrency } from '../context/CurrencyContext';
 
-const fmt = (n) => '₹' + Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 0 });
 const API_URL = process.env.REACT_APP_API_URL || '/api';
 console.log(API_URL);
 
 const CustomTooltip = ({ active, payload, label }) => {
+  const { symbol } = useCurrency();
+  const fmt = (n) => symbol + Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 0 });
   if (active && payload?.length) {
     return (
       <div style={{ background: '#fff', border: '1px solid #DDE8E4', borderRadius: 7, padding: '8px 12px', fontSize: 12.5 }}>
@@ -20,6 +22,8 @@ const CustomTooltip = ({ active, payload, label }) => {
 };
 
 export default function Dashboard({ navigate }) {
+  const { symbol } = useCurrency();
+  const fmt = (n) => symbol + Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 0 });
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -69,7 +73,7 @@ export default function Dashboard({ navigate }) {
                 <BarChart data={data.weekly_data} barSize={14} barGap={4}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#DDE8E4" vertical={false} />
                   <XAxis dataKey="day" tick={{ fontSize: 12, fill: '#718096' }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 11, fill: '#718096' }} axisLine={false} tickLine={false} tickFormatter={v => '₹' + (v >= 1000 ? (v/1000).toFixed(0)+'k' : v)} />
+                  <YAxis tick={{ fontSize: 11, fill: '#718096' }} axisLine={false} tickLine={false} tickFormatter={v => symbol + (v >= 1000 ? (v/1000).toFixed(0)+'k' : v)} />
                   <Tooltip content={<CustomTooltip />} />
                   <Bar dataKey="income" fill="#3AAA7A" radius={[4,4,0,0]} name="Income" />
                   <Bar dataKey="visits" fill="#1A7070" radius={[4,4,0,0]} name="Visits" />
@@ -100,7 +104,7 @@ export default function Dashboard({ navigate }) {
                   </div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <div className="amount-income" style={{ fontSize: 13 }}>₹{Number(v.amount_paid).toLocaleString('en-IN')}</div>
+                  <div className="amount-income" style={{ fontSize: 13 }}>{symbol}{Number(v.amount_paid).toLocaleString('en-IN')}</div>
                   <span className={`badge badge-${v.payment_status}`} style={{ fontSize: 10.5 }}>{v.payment_status}</span>
                 </div>
               </div>

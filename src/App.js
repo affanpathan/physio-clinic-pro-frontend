@@ -11,6 +11,7 @@ import ClinicMaster from './pages/ClinicMaster';
 import ClinicUsers from './pages/ClinicUsers';
 import Therapists from './pages/Therapists';
 import LandingPage from './pages/LandingPage';
+import { CurrencyProvider } from './context/CurrencyContext';
 import './App.css';
 
 const NAV = [
@@ -46,6 +47,8 @@ export default function App() {
   const [loggedIn, setLoggedIn] = useState(false);
   const [clinicId, setClinicId] = useState('');
   const [clinicName, setClinicName] = useState('');
+  const [currencyCode, setCurrencyCode] = useState('INR');
+  const [currencySymbol, setCurrencySymbol] = useState('₹');
   const [token, setToken] = useState('');
   const [adminAuthorized, setAdminAuthorized] = useState(false);
   const [adminPassword, setAdminPassword] = useState('');
@@ -64,6 +67,8 @@ export default function App() {
           setToken(parsed.token);
           setClinicId(parsed.clinicId || '');
           setClinicName(parsed.clinicName || '');
+          setCurrencyCode(parsed.currencyCode || 'INR');
+          setCurrencySymbol(parsed.currencySymbol || '₹');
           setLoggedIn(true);
           if (page === 'landing') {
             setPage('dashboard');
@@ -151,6 +156,8 @@ export default function App() {
     setSelectedPatient(null);
     setClinicId('');
     setClinicName('');
+    setCurrencyCode('INR');
+    setCurrencySymbol('₹');
     setToken('');
     setAdminToken('');
     setAdminAuthorized(false);
@@ -176,14 +183,24 @@ export default function App() {
     const resolvedToken = data?.token || '';
     const resolvedClinicId = data?.clinic_id || data?.user?.clinic_id || '';
     const resolvedClinicName = data?.clinic_name || data?.user?.clinic_name || '';
+    const resolvedCurrencyCode = data?.currency || data?.user?.currency || 'INR';
+    const resolvedCurrencySymbol = data?.currency_symbol || data?.user?.currency_symbol || '₹';
     setLoggedIn(true);
     setToken(resolvedToken);
     setClinicId(resolvedClinicId);
     setClinicName(resolvedClinicName);
+    setCurrencyCode(resolvedCurrencyCode);
+    setCurrencySymbol(resolvedCurrencySymbol);
     if (typeof window !== 'undefined') {
       window.localStorage.setItem(
         AUTH_STORAGE_KEY,
-        JSON.stringify({ token: resolvedToken, clinicId: resolvedClinicId, clinicName: resolvedClinicName })
+        JSON.stringify({
+          token: resolvedToken,
+          clinicId: resolvedClinicId,
+          clinicName: resolvedClinicName,
+          currencyCode: resolvedCurrencyCode,
+          currencySymbol: resolvedCurrencySymbol,
+        })
       );
     }
     if (page === 'landing') {
@@ -192,10 +209,15 @@ export default function App() {
   };
 
   if (!loggedIn && !isAdminPage) {
-    return <LandingPage onLogin={handleLogin} />;
+    return (
+      <CurrencyProvider code={currencyCode} symbol={currencySymbol}>
+        <LandingPage onLogin={handleLogin} />
+      </CurrencyProvider>
+    );
   }
 
   return (
+    <CurrencyProvider code={currencyCode} symbol={currencySymbol}>
     <div className="app-shell">
       <aside className={`sidebar ${sidebarOpen ? 'open' : 'collapsed'}`}>
         <div className="sidebar-header">
@@ -280,5 +302,6 @@ export default function App() {
         )}
       </main>
     </div>
+    </CurrencyProvider>
   );
 }

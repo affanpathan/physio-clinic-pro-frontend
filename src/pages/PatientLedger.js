@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Search, X, CreditCard, Calendar, FileText } from 'lucide-react';
+import { useCurrency } from '../context/CurrencyContext';
 const API_URL = process.env.REACT_APP_API_URL || '/api';
 
-const fmt = n => '₹' + Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
 export default function PatientLedger({ selectedPatient, setSelectedPatient }) {
+  const { symbol } = useCurrency();
+  const fmt = n => symbol + Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const [patients, setPatients] = useState([]);
   const [search, setSearch] = useState('');
   const [ledger, setLedger] = useState(null);

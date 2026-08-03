@@ -22,6 +22,7 @@ const emptyForm = {
   clinic_state: '',
   clinic_country: '',
   currency: 'INR',
+  currency_symbol: '₹',
   last_date: '',
   clinic_active: true,
 };
@@ -72,6 +73,17 @@ export default function ClinicMaster() {
       ...prev,
       clinic_country: country,
       currency: match ? match.code : prev.currency,
+      currency_symbol: match ? match.symbol : prev.currency_symbol,
+    }));
+  };
+
+  const handleCurrencyChange = (e) => {
+    const code = e.target.value;
+    const match = CURRENCIES.find((c) => c.code === code);
+    setForm((prev) => ({
+      ...prev,
+      currency: code,
+      currency_symbol: match ? match.symbol : prev.currency_symbol,
     }));
   };
 
@@ -116,6 +128,7 @@ export default function ClinicMaster() {
       clinic_state: item.clinic_state || '',
       clinic_country: item.clinic_country || '',
       currency: item.currency || 'INR',
+      currency_symbol: item.currency_symbol || '₹',
       last_date: item.last_date ? item.last_date.slice(0, 10) : '',
       clinic_active: item.clinic_active !== false,
     });
@@ -154,12 +167,13 @@ export default function ClinicMaster() {
               <option key={country} value={country}>{country}</option>
             ))}
           </select>
-          <select name="currency" value={form.currency} onChange={handleChange} style={inputStyle}>
+          <select name="currency" value={form.currency} onChange={handleCurrencyChange} style={inputStyle}>
             <option value="">Select Currency</option>
             {CURRENCIES.map(({ country, code, name }) => (
               <option key={country} value={code}>{code} ({name}) — {country}</option>
             ))}
           </select>
+          <input name="currency_symbol" placeholder="Currency Symbol" value={form.currency_symbol} onChange={handleChange} style={inputStyle} />
           <input name="last_date" type="date" value={form.last_date} onChange={handleChange} style={inputStyle} />
           <textarea name="clinic_address" placeholder="Address" value={form.clinic_address} onChange={handleChange} style={{ ...inputStyle, minHeight: 42 }} />
         </div>
@@ -184,6 +198,7 @@ export default function ClinicMaster() {
                 <th style={thStyle}>Phone</th>
                 <th style={thStyle}>City</th>
                 <th style={thStyle}>Currency</th>
+                <th style={thStyle}>Symbol</th>
                 <th style={thStyle}>Active</th>
                 <th style={thStyle}>Actions</th>
               </tr>
@@ -196,6 +211,7 @@ export default function ClinicMaster() {
                   <td style={tdStyle}>{item.clinic_phone}</td>
                   <td style={tdStyle}>{item.clinic_city}</td>
                   <td style={tdStyle}>{item.currency || '-'}</td>
+                  <td style={tdStyle}>{item.currency_symbol || '-'}</td>
                   <td style={tdStyle}>{item.clinic_active ? 'Yes' : 'No'}</td>
                   <td style={tdStyle}>
                     <button onClick={() => handleEdit(item)} style={secondaryButtonStyle}>Edit</button>{' '}

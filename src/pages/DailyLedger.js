@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, X, Trash2, ChevronLeft, ChevronRight, TrendingUp, TrendingDown } from 'lucide-react';
+import { useCurrency } from '../context/CurrencyContext';
 const API_URL = process.env.REACT_APP_API_URL || '/api';
 
 const EXPENSE_CATEGORIES = ['Rent', 'Utilities', 'Salaries', 'Equipment', 'Medicines/Supplies', 'Maintenance', 'Marketing', 'Insurance', 'Miscellaneous'];
@@ -13,13 +14,6 @@ const EMPTY_ENTRY = {
   amount: '',
   payment_method: 'cash',
   reference_number: '',
-};
-
-const fmt = n => '₹' + Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const fmtOrDash = n => (n === null || n === undefined || n === '') ? '—' : fmt(n);
-const dueAmount = (fee, paid) => {
-  if ((fee === null || fee === undefined || fee === '') && (paid === null || paid === undefined || paid === '')) return '—';
-  return fmt((Number(fee) || 0) - (Number(paid) || 0));
 };
 
 const displayDate = (d) => {
@@ -54,6 +48,13 @@ const displayTime = (t) => {
 };
 
 export default function DailyLedger() {
+  const { symbol } = useCurrency();
+  const fmt = n => symbol + Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const fmtOrDash = n => (n === null || n === undefined || n === '') ? '—' : fmt(n);
+  const dueAmount = (fee, paid) => {
+    if ((fee === null || fee === undefined || fee === '') && (paid === null || paid === undefined || paid === '')) return '—';
+    return fmt((Number(fee) || 0) - (Number(paid) || 0));
+  };
   const [entries, setEntries] = useState([]);
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [loading, setLoading] = useState(true);
@@ -345,7 +346,7 @@ export default function DailyLedger() {
                   </select>
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Amount (₹) *</label>
+                  <label className="form-label">Amount ({symbol}) *</label>
                   <input type="number" step="0.01" className="form-input" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} />
                 </div>
                 <div className="form-group">

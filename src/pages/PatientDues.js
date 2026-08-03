@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Search, X } from 'lucide-react';
+import { useCurrency } from '../context/CurrencyContext';
 const API_URL = process.env.REACT_APP_API_URL || '/api';
 
-const fmt = n => '₹' + Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmtDate = value => {
   if (!value) return '—';
   if (typeof value === 'string') return value.includes('T') ? value.split('T')[0] : value;
@@ -10,6 +10,8 @@ const fmtDate = value => {
 };
 
 export default function PatientDues() {
+  const { symbol } = useCurrency();
+  const fmt = n => symbol + Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const [dues, setDues] = useState([]);
   const [loading, setLoading] = useState(true);
   const [patients, setPatients] = useState([]);

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, X, ChevronLeft, ChevronRight, Edit2 } from 'lucide-react';
+import { useCurrency } from '../context/CurrencyContext';
 const API_URL = process.env.REACT_APP_API_URL || '/api';
 
 const THERAPY_TYPES = ['Bio Lite','Premium Plus','Manual Therapy', 'Exercise Therapy', 'Electrotherapy', 'Ultrasound', 'TENS', 'Heat Therapy', 'Cold Therapy', 'Dry Needling', 'Cupping', 'Hydrotherapy', 'Taping', 'Post-surgical Rehab', 'Sports Rehab', 'Other'];
@@ -12,9 +13,9 @@ const EMPTY_VISIT = {
 };
 
 
-const fmt = n => '₹' + Number(n || 0).toLocaleString('en-IN');
-
 export default function Visits() {
+  const { symbol } = useCurrency();
+  const fmt = n => symbol + Number(n || 0).toLocaleString('en-IN');
   const [visits, setVisits] = useState([]);
   const [patients, setPatients] = useState([]);
   const [therapists, setTherapists] = useState([]);
@@ -301,11 +302,11 @@ export default function Visits() {
                 <div className="form-section-title">Payment</div>
                 <div className="form-grid form-grid-3">
                   <div className="form-group">
-                    <label className="form-label">Fee Charged (₹)</label>
+                    <label className="form-label">Fee Charged ({symbol})</label>
                     <input type="number" className="form-input" value={form.fee_charged} onChange={e => setForm({ ...form, fee_charged: e.target.value })} />
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Amount Paid (₹)</label>
+                    <label className="form-label">Amount Paid ({symbol})</label>
                     <input type="number" className="form-input" value={form.amount_paid} onChange={e => setForm({ ...form, amount_paid: e.target.value })} />
                   </div>
                   <div className="form-group">
