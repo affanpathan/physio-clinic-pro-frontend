@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, X, ChevronLeft, ChevronRight, Edit2 } from 'lucide-react';
+import { Plus, X, ChevronLeft, ChevronRight, Edit2, Trash2 } from 'lucide-react';
 import { useCurrency } from '../context/CurrencyContext';
 const API_URL = process.env.REACT_APP_API_URL || '/api';
 
@@ -7,9 +7,23 @@ const THERAPY_TYPES = ['Bio Lite','Premium Plus','Manual Therapy', 'Exercise The
 
 const EMPTY_VISIT = {
   patient_id: '', therapy_plan_id: '', visit_date: new Date().toISOString().split('T')[0],
-  visit_time: '09:00', therapist_name: '', therapy_type: '', therapy_types: [], duration_minutes: 15,
+  visit_time: '09:00', therapist_name: '', therapies: [{ therapy_type: '', duration_minutes: 15 }],
   fee_charged: '', amount_paid: '', payment_method: 'cash', payment_status: 'paid',
   session_notes: '', chief_complaint: '', treatment_given: '',
+};
+
+// Builds a { therapy_type, duration_minutes }[] breakdown from a visit row, handling both the
+// new object-array `therapy_types` shape and the legacy plain-string-array/single-type shape.
+const getTherapyRows = (v) => {
+  if (Array.isArray(v.therapy_types) && v.therapy_types.length) {
+    if (typeof v.therapy_types[0] === 'object' && v.therapy_types[0] !== null) {
+      return v.therapy_types.map(t => ({ therapy_type: t.therapy_type, duration_minutes: t.duration_minutes }));
+    }
+    // legacy: array of plain strings — true per-type split was never recorded
+    return v.therapy_types.map((t, idx) => ({ therapy_type: t, duration_minutes: idx === 0 ? (v.duration_minutes || 15) : 15 }));
+  }
+  if (v.therapy_type) return [{ therapy_type: v.therapy_type, duration_minutes: v.duration_minutes || 15 }];
+  return [];
 };
 
 
@@ -72,23 +86,36 @@ export default function Visits() {
     setDate(d.toISOString().split('T')[0]);
   };
 
-  const openAdd = () => { setForm({ ...EMPTY_VISIT, visit_date: date }); setEditVisit(null); setError(''); setPatSearch(''); setShowModal(true); };
+  const openAdd = () => { setForm({ ...EMPTY_VISIT, visit_date: date, therapies: [{ therapy_type: '', duration_minutes: 15 }] }); setEditVisit(null); setError(''); setPatSearch(''); setShowModal(true); };
   const openEdit = (v) => {
-    const ttypes = (v.therapy_types && v.therapy_types.length) ? v.therapy_types : (v.therapy_type ? [v.therapy_type] : []);
-    setForm({ ...v, visit_date: v.visit_date?.split('T')[0] || date, therapy_types: ttypes, therapy_type: ttypes[0] || (v.therapy_type || '') });
+    const therapies = getTherapyRows(v);
+    setForm({ ...v, visit_date: v.visit_date?.split('T')[0] || date, therapies: therapies.length ? therapies : [{ therapy_type: '', duration_minutes: 15 }] });
     setEditVisit(v);
     setPatSearch(`${v.first_name} ${v.last_name}`);
     setError('');
     setShowModal(true);
   };
 
+  const addTherapyRow = () => setForm(f => ({ ...f, therapies: [...f.therapies, { therapy_type: '', duration_minutes: 15 }] }));
+  const removeTherapyRow = (idx) => setForm(f => ({ ...f, therapies: f.therapies.length > 1 ? f.therapies.filter((_, i) => i !== idx) : f.therapies }));
+  const updateTherapyRow = (idx, patch) => setForm(f => ({ ...f, therapies: f.therapies.map((r, i) => i === idx ? { ...r, ...patch } : r) }));
+  const totalDuration = (form.therapies || []).reduce((s, t) => s + (Number(t.duration_minutes) || 0), 0);
+
   const handleSave = async () => {
     if (!form.patient_id) { setError('Please select a patient.'); return; }
     if (!form.visit_date) { setError('Visit date is required.'); return; }
+    const validTherapies = (form.therapies || []).filter(t => t.therapy_type && Number(t.duration_minutes) > 0);
+    if (!validTherapies.length) { setError('Add at least one therapy type with a duration greater than 0.'); return; }
+    const seenTypes = new Set();
+    for (const t of validTherapies) {
+      if (seenTypes.has(t.therapy_type)) { setError(`"${t.therapy_type}" is selected more than once.`); return; }
+      seenTypes.add(t.therapy_type);
+    }
     setSaving(true); setError('');
     try {
       const payload = {
         ...form,
+        therapies: validTherapies,
         payment_status: computePaymentStatus(form.fee_charged, form.amount_paid),
       };
       const url = editVisit ? `${API_URL}/visits/${editVisit.id}` : `${API_URL}/visits`;
@@ -98,6 +125,15 @@ export default function Visits() {
       setShowModal(false); loadVisits();
     } catch (e) { setError(e.message); }
     setSaving(false);
+  };
+
+  const handleDelete = async (v) => {
+    if (!window.confirm('Delete this visit? This will also remove its related payment and daily ledger entry.')) return;
+    try {
+      const res = await fetch(`${API_URL}/visits/${v.id}`, { method: 'DELETE' });
+      if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || 'Delete failed'); }
+      loadVisits();
+    } catch (e) { window.alert(e.message); }
   };
 
   const selectPatient = (p) => {
@@ -178,7 +214,7 @@ export default function Visits() {
                   <th>Date</th>
                   <th>Time</th>
                   <th>Therapy</th>
-                  <th>Duration</th>
+                  <th>Total Duration</th>
                   <th>Fee</th>
                   <th>Paid</th>
                   <th>Payment</th>
@@ -195,7 +231,13 @@ export default function Visits() {
                     </td>
                     <td style={{ fontVariantNumeric: 'tabular-nums' }}>{v.visit_date?.split('T')[0]}</td>
                     <td style={{ fontVariantNumeric: 'tabular-nums' }}>{v.visit_time?.slice(0,5) || '—'}</td>
-                    <td>{(v.therapy_types && v.therapy_types.length) ? v.therapy_types.join(', ') : (v.therapy_type || '—')}</td>
+                    <td>
+                      {getTherapyRows(v).length
+                        ? getTherapyRows(v).map((t, i) => (
+                            <div key={i} style={{ fontSize: 12.5 }}>{t.therapy_type} <span style={{ color: 'var(--slate-light)' }}>({t.duration_minutes}m)</span></div>
+                          ))
+                        : '—'}
+                    </td>
                     <td>{v.duration_minutes} min</td>
                     <td className="amount-expense">{fmt(v.fee_charged)}</td>
                     <td className="amount-income">{fmt(v.amount_paid)}</td>
@@ -204,6 +246,9 @@ export default function Visits() {
                     <td>
                       <button className="btn btn-ghost btn-sm btn-icon" onClick={() => openEdit(v)} title="Edit">
                         <Edit2 size={13} />
+                      </button>
+                      <button className="btn btn-ghost btn-sm btn-icon" onClick={() => handleDelete(v)} title="Delete">
+                        <Trash2 size={13} />
                       </button>
                     </td>
                   </tr>
@@ -265,18 +310,50 @@ export default function Visits() {
                     ))}
                   </select>
                 </div>
-                <div className="form-group">
-                  <label className="form-label">Therapy Type</label>
-                  <select multiple className="form-select" value={form.therapy_types || []} onChange={e => {
-                    const opts = Array.from(e.target.selectedOptions).map(o => o.value);
-                    setForm({ ...form, therapy_types: opts, therapy_type: opts[0] || '' });
-                  }} style={{ minHeight: 120 }}>
-                    {THERAPY_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                  </select>
+                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                  <label className="form-label">Therapy & Duration *</label>
+                  {form.therapies.map((row, idx) => {
+                    const otherSelected = form.therapies.filter((_, i) => i !== idx).map(r => r.therapy_type);
+                    return (
+                      <div key={idx} style={{ display: 'flex', gap: 8, marginBottom: 6, alignItems: 'center' }}>
+                        <select
+                          className="form-select"
+                          style={{ flex: 2 }}
+                          value={row.therapy_type}
+                          onChange={e => updateTherapyRow(idx, { therapy_type: e.target.value })}
+                        >
+                          <option value="">Select therapy type</option>
+                          {THERAPY_TYPES.filter(t => t === row.therapy_type || !otherSelected.includes(t)).map(t => (
+                            <option key={t} value={t}>{t}</option>
+                          ))}
+                        </select>
+                        <input
+                          type="number"
+                          className="form-input"
+                          style={{ flex: 1 }}
+                          placeholder="Minutes"
+                          value={row.duration_minutes}
+                          onChange={e => updateTherapyRow(idx, { duration_minutes: e.target.value })}
+                        />
+                        <button
+                          type="button"
+                          className="btn btn-ghost btn-sm btn-icon"
+                          onClick={() => removeTherapyRow(idx)}
+                          disabled={form.therapies.length === 1}
+                          title="Remove"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    );
+                  })}
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={addTherapyRow}>
+                    <Plus size={13} /> Add Therapy
+                  </button>
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Duration (minutes)</label>
-                  <input type="number" className="form-input" value={form.duration_minutes} onChange={e => setForm({ ...form, duration_minutes: e.target.value })} />
+                  <label className="form-label">Total Duration (minutes)</label>
+                  <input type="number" className="form-input" value={totalDuration} disabled readOnly />
                 </div>
               </div>
 
