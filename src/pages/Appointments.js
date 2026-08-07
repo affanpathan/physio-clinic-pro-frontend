@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { ChevronLeft, ChevronRight, X, Plus } from 'lucide-react';
+import { useKeyboardListNav } from '../hooks/useKeyboardListNav';
 const API_URL = process.env.REACT_APP_API_URL || '/api';
 
 const THERAPY_TYPES = ['Manual Therapy', 'Exercise Therapy', 'Electrotherapy', 'Ultrasound', 'TENS', 'Heat Therapy', 'Cold Therapy', 'Dry Needling', 'Cupping', 'Hydrotherapy', 'Taping', 'Post-surgical Rehab', 'Sports Rehab', 'Other'];
@@ -98,6 +99,15 @@ export default function Appointments() {
     setError('');
     setShowBookingModal(true);
   };
+
+  const selectBookingPatient = (p) => {
+    setBookingForm(f => ({ ...f, patient_id: p.id }));
+    setPatSearch(`${p.first_name} ${p.last_name}`);
+    setPatients([]);
+  };
+
+  const { highlightedIndex: patHighlight, setHighlightedIndex: setPatHighlight, onKeyDown: onPatSearchKeyDown } =
+    useKeyboardListNav(patients, selectBookingPatient, () => setPatients([]));
 
   const handleBookingSubmit = async () => {
     if (!selectedSlot || !bookingForm.patient_id) {
@@ -344,20 +354,16 @@ export default function Appointments() {
                         placeholder="Search and select patient (required)"
                         value={patSearch}
                         onChange={e => setPatSearch(e.target.value)}
+                        onKeyDown={onPatSearchKeyDown}
                       />
                       {patients.length > 0 && (
                         <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1px solid var(--border)', borderRadius: 7, zIndex: 20, boxShadow: 'var(--shadow-md)', marginTop: 2, maxHeight: 150, overflowY: 'auto' }}>
-                          {patients.map(p => (
+                          {patients.map((p, i) => (
                             <div
                               key={p.id}
-                              onClick={() => {
-                                setBookingForm({ ...bookingForm, patient_id: p.id });
-                                setPatSearch(`${p.first_name} ${p.last_name}`);
-                                setPatients([]);
-                              }}
-                              style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid var(--border)', fontSize: 13 }}
-                              onMouseEnter={e => e.currentTarget.style.background = 'var(--teal-50)'}
-                              onMouseLeave={e => e.currentTarget.style.background = '#fff'}
+                              onClick={() => selectBookingPatient(p)}
+                              onMouseEnter={() => setPatHighlight(i)}
+                              style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid var(--border)', fontSize: 13, background: i === patHighlight ? 'var(--teal-50)' : '#fff' }}
                             >
                               {p.first_name} {p.last_name} ({p.patient_id})
                             </div>

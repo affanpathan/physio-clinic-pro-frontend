@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, X, Trash2, ChevronLeft, ChevronRight, TrendingUp, TrendingDown } from 'lucide-react';
 import { useCurrency } from '../context/CurrencyContext';
+import { useKeyboardListNav } from '../hooks/useKeyboardListNav';
 const API_URL = process.env.REACT_APP_API_URL || '/api';
 
 const EXPENSE_CATEGORIES = ['Rent', 'Utilities', 'Salaries', 'Equipment', 'Medicines/Supplies', 'Maintenance', 'Marketing', 'Insurance', 'Miscellaneous'];
@@ -111,6 +112,9 @@ export default function DailyLedger() {
       setForm(f => ({ ...f, amount: Number(bal) }));
     } catch (err) { /* ignore */ }
   };
+
+  const { highlightedIndex: patHighlight, setHighlightedIndex: setPatHighlight, onKeyDown: onPatSearchKeyDown } =
+    useKeyboardListNav(patients, selectPatient, () => setPatients([]));
 
   const shiftDate = (days) => {
     const d = new Date(date); d.setDate(d.getDate() + days);
@@ -319,13 +323,12 @@ export default function DailyLedger() {
                 {form.entry_type === 'income' && (
                   <div className="form-group" style={{ position: 'relative' }}>
                     <label className="form-label">Patient (optional)</label>
-                    <input className="form-input" placeholder="Search patient by name..." value={patSearch} onChange={e => { setPatSearch(e.target.value); setForm(f => ({ ...f, patient_id: '' })); }} />
+                    <input className="form-input" placeholder="Search patient by name..." value={patSearch} onChange={e => { setPatSearch(e.target.value); setForm(f => ({ ...f, patient_id: '' })); }} onKeyDown={onPatSearchKeyDown} />
                     {patients.length > 0 && (
                       <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1px solid var(--border)', borderRadius: 7, zIndex: 20, boxShadow: 'var(--shadow-md)', marginTop: 2, maxHeight: 220, overflowY: 'auto' }}>
-                        {patients.map(p => (
-                          <div key={p.id} onClick={() => selectPatient(p)} style={{ padding: '10px 14px', cursor: 'pointer', borderBottom: '1px solid var(--border)', fontSize: 13.5 }}
-                            onMouseEnter={e => e.currentTarget.style.background = 'var(--teal-50)'}
-                            onMouseLeave={e => e.currentTarget.style.background = '#fff'}>
+                        {patients.map((p, i) => (
+                          <div key={p.id} onClick={() => selectPatient(p)} onMouseEnter={() => setPatHighlight(i)}
+                            style={{ padding: '10px 14px', cursor: 'pointer', borderBottom: '1px solid var(--border)', fontSize: 13.5, background: i === patHighlight ? 'var(--teal-50)' : '#fff' }}>
                             <div style={{ fontWeight: 600, color: 'var(--teal-900)' }}>{p.first_name} {p.last_name}</div>
                             <div style={{ fontSize: 12, color: 'var(--slate-light)' }}>{p.patient_id} · {p.phone}</div>
                           </div>

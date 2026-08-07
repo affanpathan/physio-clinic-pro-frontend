@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, X, ChevronLeft, ChevronRight, Edit2, Trash2 } from 'lucide-react';
 import { useCurrency } from '../context/CurrencyContext';
+import { useKeyboardListNav } from '../hooks/useKeyboardListNav';
 const API_URL = process.env.REACT_APP_API_URL || '/api';
 
 const THERAPY_TYPES = ['Bio Lite','Premium Plus','Manual Therapy', 'Exercise Therapy', 'Electrotherapy', 'Ultrasound', 'TENS', 'Heat Therapy', 'Cold Therapy', 'Dry Needling', 'Cupping', 'Hydrotherapy', 'Taping', 'Post-surgical Rehab', 'Sports Rehab', 'Other'];
@@ -146,6 +147,9 @@ export default function Visits() {
     setPatients([]);
   };
 
+  const { highlightedIndex: patHighlight, setHighlightedIndex: setPatHighlight, onKeyDown: onPatSearchKeyDown } =
+    useKeyboardListNav(patients, selectPatient, () => setPatients([]));
+
   const safeVisits = Array.isArray(visits) ? visits : [];
   const totalIncome = safeVisits.reduce((s, v) => s + Number(v.amount_paid || 0), 0);
   const totalCharged = safeVisits.reduce((s, v) => s + Number(v.fee_charged || 0), 0);
@@ -281,14 +285,14 @@ export default function Visits() {
                     placeholder="Search patient by name..."
                     value={patSearch}
                     onChange={e => { setPatSearch(e.target.value); setForm(f => ({ ...f, patient_id: '' })); }}
+                    onKeyDown={onPatSearchKeyDown}
                     disabled={!!editVisit}
                   />
                   {patients.length > 0 && (
                     <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1px solid var(--border)', borderRadius: 7, zIndex: 20, boxShadow: 'var(--shadow-md)', marginTop: 2, maxHeight: 180, overflowY: 'auto' }}>
-                      {patients.map(p => (
-                        <div key={p.id} onClick={() => selectPatient(p)} style={{ padding: '9px 12px', cursor: 'pointer', borderBottom: '1px solid var(--border)', fontSize: 13.5 }}
-                          onMouseEnter={e => e.currentTarget.style.background = 'var(--teal-50)'}
-                          onMouseLeave={e => e.currentTarget.style.background = '#fff'}>
+                      {patients.map((p, i) => (
+                        <div key={p.id} onClick={() => selectPatient(p)} onMouseEnter={() => setPatHighlight(i)}
+                          style={{ padding: '9px 12px', cursor: 'pointer', borderBottom: '1px solid var(--border)', fontSize: 13.5, background: i === patHighlight ? 'var(--teal-50)' : '#fff' }}>
                           <strong>{p.first_name} {p.last_name}</strong> <span style={{ color: 'var(--slate-light)', fontSize: 12 }}>· {p.patient_id} · {p.phone}</span>
                         </div>
                       ))}
