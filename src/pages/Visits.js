@@ -37,6 +37,7 @@ export default function Visits() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editVisit, setEditVisit] = useState(null);
+  const [paymentLocked, setPaymentLocked] = useState(false);
   const [form, setForm] = useState(EMPTY_VISIT);
   const [patSearch, setPatSearch] = useState('');
   const [saving, setSaving] = useState(false);
@@ -86,11 +87,13 @@ export default function Visits() {
     setDate(d.toISOString().split('T')[0]);
   };
 
-  const openAdd = () => { setForm({ ...EMPTY_VISIT, visit_date: date, therapies: [{ therapy_type: '', duration_minutes: 15 }] }); setEditVisit(null); setError(''); setPatSearch(''); setShowModal(true); };
+  const openAdd = () => { setForm({ ...EMPTY_VISIT, visit_date: date, therapies: [{ therapy_type: '', duration_minutes: 15 }] }); setEditVisit(null); setPaymentLocked(false); setError(''); setPatSearch(''); setShowModal(true); };
   const openEdit = (v) => {
     const therapies = getTherapyRows(v);
-    setForm({ ...v, visit_date: v.visit_date?.split('T')[0] || date, therapies: therapies.length ? therapies : [{ therapy_type: '', duration_minutes: 15 }] });
+    const visitDate = v.visit_date?.split('T')[0] || date;
+    setForm({ ...v, visit_date: visitDate, therapies: therapies.length ? therapies : [{ therapy_type: '', duration_minutes: 15 }] });
     setEditVisit(v);
+    setPaymentLocked(visitDate !== new Date().toISOString().split('T')[0]);
     setPatSearch(`${v.first_name} ${v.last_name}`);
     setError('');
     setShowModal(true);
@@ -111,6 +114,7 @@ export default function Visits() {
       if (seenTypes.has(t.therapy_type)) { setError(`"${t.therapy_type}" is selected more than once.`); return; }
       seenTypes.add(t.therapy_type);
     }
+    if (!form.fee_charged || Number(form.fee_charged) <= 0) { setError('Fee charged is required.'); return; }
     setSaving(true); setError('');
     try {
       const payload = {
@@ -379,12 +383,19 @@ export default function Visits() {
                 <div className="form-section-title">Payment</div>
                 <div className="form-grid form-grid-3">
                   <div className="form-group">
-                    <label className="form-label">Fee Charged ({symbol})</label>
+                    <label className="form-label">Fee Charged ({symbol}) *</label>
                     <input type="number" className="form-input" value={form.fee_charged} onChange={e => setForm({ ...form, fee_charged: e.target.value })} />
                   </div>
                   <div className="form-group">
                     <label className="form-label">Amount Paid ({symbol})</label>
-                    <input type="number" className="form-input" value={form.amount_paid} onChange={e => setForm({ ...form, amount_paid: e.target.value })} />
+                    <input
+                      type="number"
+                      className="form-input"
+                      value={form.amount_paid}
+                      onChange={e => setForm({ ...form, amount_paid: e.target.value })}
+                      disabled={paymentLocked}
+                      title={paymentLocked ? 'Paid amount can only be edited on the day of the visit' : undefined}
+                    />
                   </div>
                   <div className="form-group">
                     <label className="form-label">Payment Method</label>
