@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Search, X, CreditCard, Calendar, FileText } from 'lucide-react';
 import { useCurrency } from '../context/CurrencyContext';
 import { useKeyboardListNav } from '../hooks/useKeyboardListNav';
+import { getTherapyRows } from '../utils/therapy';
 const API_URL = process.env.REACT_APP_API_URL || '/api';
 
 export default function PatientLedger({ selectedPatient, setSelectedPatient }) {
@@ -207,7 +208,13 @@ export default function PatientLedger({ selectedPatient, setSelectedPatient }) {
                             <td style={{ color: 'var(--slate-light)', fontSize: 12 }}>{i + 1}</td>
                             <td style={{ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{displayDate(v.visit_date)}</td>
                             <td style={{ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{displayTime(v.visit_time)}</td>
-                            <td>{v.therapy_type || '—'}</td>
+                            <td style={{ fontSize: 12.5 }}>
+                              {getTherapyRows(v).length
+                                ? getTherapyRows(v).map((t, i) => (
+                                    <div key={i}>{t.therapy_type} <span style={{ color: 'var(--slate-light)' }}>({t.duration_minutes}m)</span></div>
+                                  ))
+                                : '—'}
+                            </td>
                             <td style={{ fontSize: 13, color: 'var(--slate)' }}>{v.therapist_name || '—'}</td>
                             <td>{v.duration_minutes} min</td>
                             <td style={{ fontVariantNumeric: 'tabular-nums' }}>{fmt(v.fee_charged)}</td>

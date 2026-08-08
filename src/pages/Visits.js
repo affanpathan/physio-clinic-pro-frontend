@@ -3,6 +3,7 @@ import { Plus, X, ChevronLeft, ChevronRight, Edit2, Trash2 } from 'lucide-react'
 import { useCurrency } from '../context/CurrencyContext';
 import { useKeyboardListNav } from '../hooks/useKeyboardListNav';
 import { useEscapeKey } from '../hooks/useEscapeKey';
+import { getTherapyRows } from '../utils/therapy';
 const API_URL = process.env.REACT_APP_API_URL || '/api';
 
 const THERAPY_TYPES = ['Bio Lite','Premium Plus','Manual Therapy', 'Exercise Therapy', 'Electrotherapy', 'Ultrasound', 'TENS', 'Heat Therapy', 'Cold Therapy', 'Dry Needling', 'Cupping', 'Hydrotherapy', 'Taping', 'Post-surgical Rehab', 'Sports Rehab', 'Other'];
@@ -12,20 +13,6 @@ const EMPTY_VISIT = {
   visit_time: '09:00', therapist_name: '', therapies: [{ therapy_type: '', duration_minutes: 15 }],
   fee_charged: '', amount_paid: '', payment_method: 'cash', payment_status: 'paid',
   session_notes: '', chief_complaint: '', treatment_given: '',
-};
-
-// Builds a { therapy_type, duration_minutes }[] breakdown from a visit row, handling both the
-// new object-array `therapy_types` shape and the legacy plain-string-array/single-type shape.
-const getTherapyRows = (v) => {
-  if (Array.isArray(v.therapy_types) && v.therapy_types.length) {
-    if (typeof v.therapy_types[0] === 'object' && v.therapy_types[0] !== null) {
-      return v.therapy_types.map(t => ({ therapy_type: t.therapy_type, duration_minutes: t.duration_minutes }));
-    }
-    // legacy: array of plain strings — true per-type split was never recorded
-    return v.therapy_types.map((t, idx) => ({ therapy_type: t, duration_minutes: idx === 0 ? (v.duration_minutes || 15) : 15 }));
-  }
-  if (v.therapy_type) return [{ therapy_type: v.therapy_type, duration_minutes: v.duration_minutes || 15 }];
-  return [];
 };
 
 

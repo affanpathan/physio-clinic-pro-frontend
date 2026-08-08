@@ -3,6 +3,7 @@ import { Plus, X, Trash2, ChevronLeft, ChevronRight, TrendingUp, TrendingDown } 
 import { useCurrency } from '../context/CurrencyContext';
 import { useKeyboardListNav } from '../hooks/useKeyboardListNav';
 import { useEscapeKey } from '../hooks/useEscapeKey';
+import { getTherapyRows } from '../utils/therapy';
 const API_URL = process.env.REACT_APP_API_URL || '/api';
 
 const EXPENSE_CATEGORIES = ['Rent', 'Utilities', 'Salaries', 'Equipment', 'Medicines/Supplies', 'Maintenance', 'Marketing', 'Insurance', 'Miscellaneous'];
@@ -264,6 +265,7 @@ export default function DailyLedger() {
                   <th>Time</th>
                   <th>Type</th>
                   <th>Category</th>
+                  <th>Therapy</th>
                   <th>Payment</th>
                   <th>Patient</th>
                   <th>Fee Charged</th>
@@ -279,6 +281,13 @@ export default function DailyLedger() {
                     <td style={{ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{displayTime(e.created_at)}</td>
                     <td><span className={`badge badge-${e.entry_type}`}>{e.entry_type}</span></td>
                     <td style={{ color: 'var(--slate)', fontSize: 13 }}>{e.category}</td>
+                    <td style={{ fontSize: 12.5 }}>
+                      {getTherapyRows(e).length
+                        ? getTherapyRows(e).map((t, i) => (
+                            <div key={i}>{t.therapy_type} <span style={{ color: 'var(--slate-light)' }}>({t.duration_minutes}m)</span></div>
+                          ))
+                        : '—'}
+                    </td>
                     <td><span className={`badge badge-${e.payment_method}`}>{e.payment_method}</span></td>
                     <td style={{ fontSize: 12.5, color: 'var(--slate-light)' }}>
                       {e.first_name ? `${e.first_name} ${e.last_name}` : '—'}
