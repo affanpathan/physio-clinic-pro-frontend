@@ -280,7 +280,7 @@ export default function DailyLedger() {
                     <td style={{ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{displayDate(e.entry_date)}</td>
                     <td style={{ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{displayTime(e.created_at)}</td>
                     <td><span className={`badge badge-${e.entry_type}`}>{e.entry_type}</span></td>
-                    <td style={{ color: 'var(--slate)', fontSize: 13 }}>{e.category}</td>
+                    <td style={{ color: 'var(--slate)', fontSize: 13 }}>{e.visit_id ? '—' : e.category}</td>
                     <td style={{ fontSize: 12.5 }}>
                       {getTherapyRows(e).length
                         ? getTherapyRows(e).map((t, i) => (
@@ -418,7 +418,7 @@ export default function DailyLedger() {
                 </div>
                 <div>
                   <strong>Category</strong>
-                  <div style={{ marginTop: 6 }}>{detailEntry.category}</div>
+                  <div style={{ marginTop: 6 }}>{detailEntry.visit_id ? '—' : detailEntry.category}</div>
                 </div>
                 <div style={{ gridColumn: '1 / -1' }}>
                   <strong>Description</strong>
