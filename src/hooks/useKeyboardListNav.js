@@ -21,6 +21,7 @@ export function useKeyboardListNav(items, onSelect, onClose) {
         onSelect(items[highlightedIndex]);
       }
     } else if (e.key === 'Escape') {
+      e.stopPropagation();
       setHighlightedIndex(-1);
       if (onClose) onClose();
     }

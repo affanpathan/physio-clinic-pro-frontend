@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Search, X } from 'lucide-react';
 import { useCurrency } from '../context/CurrencyContext';
 import { useKeyboardListNav } from '../hooks/useKeyboardListNav';
+import { useEscapeKey } from '../hooks/useEscapeKey';
 const API_URL = process.env.REACT_APP_API_URL || '/api';
 
 const fmtDate = value => {
@@ -77,6 +78,8 @@ export default function PatientDues() {
     setLedgerData(null);
     setLedgerLoading(false);
   };
+
+  useEscapeKey(ledgerModalOpen, closeLedgerModal);
 
   const totalDue = dues.reduce((sum, row) => sum + Number(row.due_balance || 0), 0);
 
@@ -175,7 +178,7 @@ export default function PatientDues() {
       </div>
 
       {ledgerModalOpen && (
-        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && closeLedgerModal()}>
+        <div className="modal-overlay">
           <div className="modal modal-lg">
             <div className="modal-header">
               <span className="modal-title">Patient Ledger - {ledgerPatient?.first_name} {ledgerPatient?.last_name}</span>

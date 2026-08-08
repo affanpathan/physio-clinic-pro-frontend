@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, X, Trash2, ChevronLeft, ChevronRight, TrendingUp, TrendingDown } from 'lucide-react';
 import { useCurrency } from '../context/CurrencyContext';
 import { useKeyboardListNav } from '../hooks/useKeyboardListNav';
+import { useEscapeKey } from '../hooks/useEscapeKey';
 const API_URL = process.env.REACT_APP_API_URL || '/api';
 
 const EXPENSE_CATEGORIES = ['Rent', 'Utilities', 'Salaries', 'Equipment', 'Medicines/Supplies', 'Maintenance', 'Marketing', 'Insurance', 'Miscellaneous'];
@@ -115,6 +116,9 @@ export default function DailyLedger() {
 
   const { highlightedIndex: patHighlight, setHighlightedIndex: setPatHighlight, onKeyDown: onPatSearchKeyDown } =
     useKeyboardListNav(patients, selectPatient, () => setPatients([]));
+
+  useEscapeKey(showModal, () => setShowModal(false));
+  useEscapeKey(!!detailEntry, () => setDetailEntry(null));
 
   const shiftDate = (days) => {
     const d = new Date(date); d.setDate(d.getDate() + days);
@@ -303,7 +307,7 @@ export default function DailyLedger() {
       </div>
 
       {showModal && (
-        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowModal(false)}>
+        <div className="modal-overlay">
           <div className="modal modal-md">
             <div className="modal-header">
               <span className="modal-title">
@@ -383,7 +387,7 @@ export default function DailyLedger() {
         </div>
       )}
       {detailEntry && (
-        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setDetailEntry(null)}>
+        <div className="modal-overlay">
           <div className="modal modal-md">
             <div className="modal-header">
               <span className="modal-title">Entry Details</span>

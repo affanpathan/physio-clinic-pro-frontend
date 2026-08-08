@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Search, Plus, X, Edit2, Activity, Eye } from 'lucide-react';
+import { useEscapeKey } from '../hooks/useEscapeKey';
 const API_URL = process.env.REACT_APP_API_URL || '/api';
 
 const EMPTY_PATIENT = {
@@ -52,6 +53,8 @@ export default function Patients({ navigate, setSelectedPatient }) {
 
   const viewLedger = (p) => { setSelectedPatient(p); navigate('patient-ledger', p); };
 
+  useEscapeKey(showModal, () => setShowModal(false));
+
   return (
     <div>
       <div className="page-header">
@@ -102,7 +105,7 @@ export default function Patients({ navigate, setSelectedPatient }) {
       </div>
 
       {showModal && (
-        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowModal(false)}>
+        <div className="modal-overlay">
           <div className="modal modal-lg">
             <div className="modal-header">
               <span className="modal-title">{editPatient ? 'Edit Patient' : 'New Patient'}</span>

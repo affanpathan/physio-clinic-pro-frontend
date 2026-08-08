@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, X, ChevronLeft, ChevronRight, Edit2, Trash2 } from 'lucide-react';
 import { useCurrency } from '../context/CurrencyContext';
 import { useKeyboardListNav } from '../hooks/useKeyboardListNav';
+import { useEscapeKey } from '../hooks/useEscapeKey';
 const API_URL = process.env.REACT_APP_API_URL || '/api';
 
 const THERAPY_TYPES = ['Bio Lite','Premium Plus','Manual Therapy', 'Exercise Therapy', 'Electrotherapy', 'Ultrasound', 'TENS', 'Heat Therapy', 'Cold Therapy', 'Dry Needling', 'Cupping', 'Hydrotherapy', 'Taping', 'Post-surgical Rehab', 'Sports Rehab', 'Other'];
@@ -150,6 +151,8 @@ export default function Visits() {
   const { highlightedIndex: patHighlight, setHighlightedIndex: setPatHighlight, onKeyDown: onPatSearchKeyDown } =
     useKeyboardListNav(patients, selectPatient, () => setPatients([]));
 
+  useEscapeKey(showModal, () => setShowModal(false));
+
   const safeVisits = Array.isArray(visits) ? visits : [];
   const totalIncome = safeVisits.reduce((s, v) => s + Number(v.amount_paid || 0), 0);
   const totalCharged = safeVisits.reduce((s, v) => s + Number(v.fee_charged || 0), 0);
@@ -268,7 +271,7 @@ export default function Visits() {
       </div>
 
       {showModal && (
-        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowModal(false)}>
+        <div className="modal-overlay">
           <div className="modal modal-lg">
             <div className="modal-header">
               <span className="modal-title">{editVisit ? 'Edit Visit' : 'Record Visit'}</span>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { ChevronLeft, ChevronRight, X, Plus } from 'lucide-react';
 import { useKeyboardListNav } from '../hooks/useKeyboardListNav';
+import { useEscapeKey } from '../hooks/useEscapeKey';
 const API_URL = process.env.REACT_APP_API_URL || '/api';
 
 const THERAPY_TYPES = ['Manual Therapy', 'Exercise Therapy', 'Electrotherapy', 'Ultrasound', 'TENS', 'Heat Therapy', 'Cold Therapy', 'Dry Needling', 'Cupping', 'Hydrotherapy', 'Taping', 'Post-surgical Rehab', 'Sports Rehab', 'Other'];
@@ -108,6 +109,8 @@ export default function Appointments() {
 
   const { highlightedIndex: patHighlight, setHighlightedIndex: setPatHighlight, onKeyDown: onPatSearchKeyDown } =
     useKeyboardListNav(patients, selectBookingPatient, () => setPatients([]));
+
+  useEscapeKey(showBookingModal, () => setShowBookingModal(false));
 
   const handleBookingSubmit = async () => {
     if (!selectedSlot || !bookingForm.patient_id) {
@@ -329,7 +332,7 @@ export default function Appointments() {
       </div>
 
       {showBookingModal && (
-        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowBookingModal(false)}>
+        <div className="modal-overlay">
           <div className="modal modal-md">
             <div className="modal-header">
               <span className="modal-title">Book Appointment</span>
