@@ -29,7 +29,7 @@ export default function Dashboard({ navigate }) {
 
   useEffect(() => {
     fetch(`${API_URL}/dashboard`)
-      .then(r => r.json())
+      .then(r => { if (!r.ok) throw new Error('Failed to load dashboard'); return r.json(); })
       .then(d => { setData(d); setLoading(false); })
       .catch(() => setLoading(false));
   }, []);

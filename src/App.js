@@ -90,10 +90,16 @@ export default function App() {
       const headers = new Headers(init?.headers || {});
       const requestUrl = typeof input === 'string' ? input : input?.url || '';
       const isAdminRequest = /\/api\/(admin|clinic-master|clinic-users)(\/|$)/.test(requestUrl);
-      if (isAdminRequest && adminToken) {
-        headers.set('Authorization', `Bearer ${adminToken}`);
-      } else if (!isAdminRequest && token) {
-        headers.set('Authorization', `Bearer ${token}`);
+      if (isAdminRequest) {
+        const currentAdminToken = window.localStorage.getItem(ADMIN_STORAGE_KEY);
+        if (currentAdminToken) headers.set('Authorization', `Bearer ${currentAdminToken}`);
+      } else {
+        let currentToken = '';
+        try {
+          const parsed = JSON.parse(window.localStorage.getItem(AUTH_STORAGE_KEY) || 'null');
+          currentToken = parsed?.token || '';
+        } catch (error) { currentToken = ''; }
+        if (currentToken) headers.set('Authorization', `Bearer ${currentToken}`);
       }
       return originalFetch(input, { ...init, headers });
     };
