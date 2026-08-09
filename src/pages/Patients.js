@@ -5,7 +5,7 @@ const API_URL = process.env.REACT_APP_API_URL || '/api';
 
 const EMPTY_PATIENT = {
   first_name: '', last_name: '', phone: '', email: '',
-  date_of_birth: '', gender: '', address: '', diagnosis: '',
+  date_of_birth: '', age: '', gender: '', address: '', diagnosis: '',
   referring_doctor: '', notes: '', is_active: true,
 };
 
@@ -132,6 +132,10 @@ export default function Patients({ navigate, setSelectedPatient }) {
                 <div className="form-group">
                   <label className="form-label">Date of Birth</label>
                   <input type="date" className="form-input" value={form.date_of_birth} onChange={e => setForm({ ...form, date_of_birth: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Age</label>
+                  <input type="number" min="0" max="120" className="form-input" value={form.age} onChange={e => setForm({ ...form, age: e.target.value })} />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Phone</label>
