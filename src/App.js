@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Activity, Users, Calendar, BookOpen, BarChart2, Menu, X, Stethoscope, CreditCard, Clock, LogOut } from 'lucide-react';
+import { Activity, Users, Calendar, BookOpen, BarChart2, Menu, X, Stethoscope, CreditCard, Clock, LogOut, FileBarChart } from 'lucide-react';
 import Dashboard from './pages/Dashboard';
 import Patients from './pages/Patients';
 import Visits from './pages/Visits';
@@ -10,6 +10,7 @@ import PatientDues from './pages/PatientDues';
 import ClinicMaster from './pages/ClinicMaster';
 import ClinicUsers from './pages/ClinicUsers';
 import Therapists from './pages/Therapists';
+import Reports from './pages/Reports';
 import LandingPage from './pages/LandingPage';
 import { CurrencyProvider } from './context/CurrencyContext';
 import './App.css';
@@ -23,6 +24,7 @@ const NAV = [
   { id: 'therapists', label: 'Therapists', icon: Stethoscope },
   { id: 'patient-ledger', label: 'Patient Ledger', icon: Activity },
   { id: 'patient-dues', label: 'Patient Dues', icon: CreditCard },
+  { id: 'reports', label: 'Reports', icon: FileBarChart },
 ];
 
 const AUTH_STORAGE_KEY = 'physioClinicAuth';
@@ -278,6 +280,7 @@ export default function App() {
           {page === 'clinic-master' && adminAuthorized && <ClinicMaster />}
           {page === 'clinic-users' && adminAuthorized && <ClinicUsers />}
           {page === 'therapists' && <Therapists clinicId={clinicId} />}
+          {page === 'reports' && <Reports />}
         </div>
         {isAdminPage && !adminAuthorized && (
           <div className="modal-overlay" style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.75)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
