@@ -81,13 +81,50 @@ export default function PatientDues() {
 
   useEscapeKey(ledgerModalOpen, closeLedgerModal);
 
-  const totalDue = dues.reduce((sum, row) => sum + Number(row.due_balance || 0), 0);
+  // A negative due_balance means the patient has paid ahead — that overpayment is advance credit.
+  const owing = dues.filter(row => Number(row.due_balance || 0) > 0);
+  const advances = dues.filter(row => Number(row.due_balance || 0) < 0);
+  const totalDue = owing.reduce((sum, row) => sum + Number(row.due_balance || 0), 0);
+  const totalAdvance = advances.reduce((sum, row) => sum - Number(row.due_balance || 0), 0);
+
+  const balanceTable = (rows, balanceLabel, balanceValue, balanceClass) => (
+    <div className="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Patient</th>
+            <th>Patient ID</th>
+            <th>Total Charged</th>
+            <th>Total Paid</th>
+            <th>{balanceLabel}</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map(row => (
+            <tr key={row.id}>
+              <td>{row.first_name} {row.last_name}</td>
+              <td style={{ fontVariantNumeric: 'tabular-nums' }}>{row.patient_code}</td>
+              <td style={{ fontVariantNumeric: 'tabular-nums' }}>{fmt(row.total_charged)}</td>
+              <td style={{ fontVariantNumeric: 'tabular-nums' }}>{fmt(row.total_paid)}</td>
+              <td className={balanceClass} style={{ fontVariantNumeric: 'tabular-nums' }}>{fmt(balanceValue(row))}</td>
+              <td>
+                <button className="btn btn-sm btn-secondary" onClick={() => openLedgerModal(row)}>
+                  View Ledger
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
 
   return (
     <div>
       <div className="page-header">
         <h1 className="page-title">Patient Dues</h1>
-        <p className="page-subtitle">View per-patient outstanding balances from visit charges</p>
+        <p className="page-subtitle">View per-patient outstanding balances and advance credit from visit charges</p>
       </div>
 
       <div className="toolbar" style={{ alignItems: 'flex-start', gap: 12 }}>
@@ -124,11 +161,19 @@ export default function PatientDues() {
       <div className="ledger-summary">
         <div className="ledger-summary-item">
           <span className="ledger-summary-label">Patients with Due</span>
-          <span className="ledger-summary-value" style={{ color: 'var(--teal-900)' }}>{dues.length}</span>
+          <span className="ledger-summary-value" style={{ color: 'var(--teal-900)' }}>{owing.length}</span>
         </div>
         <div className="ledger-summary-item">
           <span className="ledger-summary-label">Total Due</span>
           <span className="ledger-summary-value" style={{ color: 'var(--coral)' }}>{fmt(totalDue)}</span>
+        </div>
+        <div className="ledger-summary-item">
+          <span className="ledger-summary-label">Patients in Advance</span>
+          <span className="ledger-summary-value" style={{ color: 'var(--teal-900)' }}>{advances.length}</span>
+        </div>
+        <div className="ledger-summary-item">
+          <span className="ledger-summary-label">Total Advance</span>
+          <span className="ledger-summary-value" style={{ color: 'var(--green)' }}>{fmt(totalAdvance)}</span>
         </div>
         {selectedPatient && (
           <div className="ledger-summary-item">
@@ -141,41 +186,19 @@ export default function PatientDues() {
       <div className="card">
         {loading ? (
           <div className="empty-state"><p>Loading patient dues...</p></div>
-        ) : dues.length === 0 ? (
+        ) : owing.length === 0 ? (
           <div className="empty-state"><p>{selectedPatient ? 'No due amount found for this patient.' : 'No patient dues found.'}</p></div>
         ) : (
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Patient</th>
-                  <th>Patient ID</th>
-                  <th>Total Charged</th>
-                  <th>Total Paid</th>
-                  <th>Due Balance</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {dues.map(due => (
-                  <tr key={due.id}>
-                    <td>{due.first_name} {due.last_name}</td>
-                    <td style={{ fontVariantNumeric: 'tabular-nums' }}>{due.patient_code}</td>
-                    <td style={{ fontVariantNumeric: 'tabular-nums' }}>{fmt(due.total_charged)}</td>
-                    <td style={{ fontVariantNumeric: 'tabular-nums' }}>{fmt(due.total_paid)}</td>
-                    <td className="amount-expense" style={{ fontVariantNumeric: 'tabular-nums' }}>{fmt(due.due_balance)}</td>
-                    <td>
-                      <button className="btn btn-sm btn-secondary" onClick={() => openLedgerModal(due)}>
-                        View Ledger
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          balanceTable(owing, 'Due Balance', row => row.due_balance, 'amount-expense')
         )}
       </div>
+
+      {!loading && advances.length > 0 && (
+        <div className="card" style={{ marginTop: 16 }}>
+          <div className="form-section-title" style={{ padding: '14px 16px 0' }}>In Advance</div>
+          {balanceTable(advances, 'Advance Balance', row => -Number(row.due_balance || 0), 'amount-income')}
+        </div>
+      )}
 
       {ledgerModalOpen && (
         <div className="modal-overlay">

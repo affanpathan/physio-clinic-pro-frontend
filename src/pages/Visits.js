@@ -29,6 +29,7 @@ export default function Visits() {
   const [paymentLocked, setPaymentLocked] = useState(false);
   const [form, setForm] = useState(EMPTY_VISIT);
   const [patSearch, setPatSearch] = useState('');
+  const [priorBalance, setPriorBalance] = useState(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [viewMode, setViewMode] = useState('day'); // day | all
@@ -76,7 +77,20 @@ export default function Visits() {
     setDate(d.toISOString().split('T')[0]);
   };
 
-  const openAdd = () => { setForm({ ...EMPTY_VISIT, visit_date: date, therapies: [{ therapy_type: '', duration_minutes: 15 }] }); setEditVisit(null); setPaymentLocked(false); setError(''); setPatSearch(''); setShowModal(true); };
+  // Balance the patient carries into this visit: positive = dues, negative = advance credit.
+  // excludeVisitId keeps the visit being edited out of its own balance.
+  const loadPriorBalance = useCallback(async (patientId, excludeVisitId) => {
+    setPriorBalance(null);
+    if (!patientId) return;
+    try {
+      const qs = excludeVisitId ? `?exclude_visit_id=${excludeVisitId}` : '';
+      const res = await fetch(`${API_URL}/patient-balance/${patientId}${qs}`);
+      if (!res.ok) return;
+      setPriorBalance(await res.json());
+    } catch (err) { /* balance is informational — never block the form */ }
+  }, []);
+
+  const openAdd = () => { setForm({ ...EMPTY_VISIT, visit_date: date, therapies: [{ therapy_type: '', duration_minutes: 15 }] }); setEditVisit(null); setPaymentLocked(false); setError(''); setPatSearch(''); setPriorBalance(null); setShowModal(true); };
   const openEdit = (v) => {
     const therapies = getTherapyRows(v);
     const visitDate = v.visit_date?.split('T')[0] || date;
@@ -85,6 +99,7 @@ export default function Visits() {
     setPaymentLocked(visitDate !== new Date().toISOString().split('T')[0]);
     setPatSearch(`${v.first_name} ${v.last_name}`);
     setError('');
+    loadPriorBalance(v.patient_id, v.id);
     setShowModal(true);
   };
 
@@ -109,7 +124,8 @@ export default function Visits() {
       const payload = {
         ...form,
         therapies: validTherapies,
-        payment_status: computePaymentStatus(form.fee_charged, form.amount_paid),
+        // Sent for compatibility only — the server recomputes it from the patient's balance.
+        payment_status: computePaymentStatus(form.fee_charged, form.amount_paid, advanceCredit),
       };
       const url = editVisit ? `${API_URL}/visits/${editVisit.id}` : `${API_URL}/visits`;
       const method = editVisit ? 'PUT' : 'POST';
@@ -133,6 +149,7 @@ export default function Visits() {
     setForm(f => ({ ...f, patient_id: p.id }));
     setPatSearch(`${p.first_name} ${p.last_name}`);
     setPatients([]);
+    loadPriorBalance(p.id, null);
   };
 
   const { highlightedIndex: patHighlight, setHighlightedIndex: setPatHighlight, onKeyDown: onPatSearchKeyDown } =
@@ -144,13 +161,24 @@ export default function Visits() {
   const totalIncome = safeVisits.reduce((s, v) => s + Number(v.amount_paid || 0), 0);
   const totalCharged = safeVisits.reduce((s, v) => s + Number(v.fee_charged || 0), 0);
 
-  const computePaymentStatus = (fee, paid) => {
+  // Mirrors resolvePaymentStatus in backend/index.js — the server is authoritative, this only
+  // previews the badge before saving. An advance already on file marks the visit paid.
+  const computePaymentStatus = (fee, paid, credit) => {
     const feeValue = Number(fee || 0);
     const paidValue = Number(paid || 0);
+    if (Number(credit || 0) > 0) return 'paid';
     if (feeValue > 0 && paidValue >= feeValue) return 'paid';
     if (paidValue > 0) return 'partial';
     return 'pending';
   };
+
+  const advanceCredit = Number(priorBalance?.advance_credit || 0);
+  const outstandingDue = Number(priorBalance?.due_amount || 0);
+  // Balance this visit leaves behind: credit carried forward, or the amount still owed.
+  const balanceAfterVisit = advanceCredit - Number(form.fee_charged || 0) + Number(form.amount_paid || 0);
+  const creditAfterVisit = Math.max(0, balanceAfterVisit);
+  const shortfallAfterVisit = Math.max(0, -balanceAfterVisit);
+  const previewStatus = computePaymentStatus(form.fee_charged, form.amount_paid, advanceCredit);
 
   return (
     <div>
@@ -274,7 +302,7 @@ export default function Visits() {
                     className="form-input"
                     placeholder="Search patient by name..."
                     value={patSearch}
-                    onChange={e => { setPatSearch(e.target.value); setForm(f => ({ ...f, patient_id: '' })); }}
+                    onChange={e => { setPatSearch(e.target.value); setForm(f => ({ ...f, patient_id: '' })); setPriorBalance(null); }}
                     onKeyDown={onPatSearchKeyDown}
                     disabled={!!editVisit}
                   />
@@ -399,6 +427,23 @@ export default function Visits() {
                     </select>
                   </div>
                 </div>
+                {form.patient_id && (advanceCredit > 0 || outstandingDue > 0) && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 10, fontSize: 13 }}>
+                    {advanceCredit > 0 ? (
+                      <span className="amount-income">
+                        Advance on file: <strong>{fmt(advanceCredit)}</strong>
+                        {shortfallAfterVisit > 0
+                          ? <> — covers part of this visit. Shortfall: <strong>{fmt(shortfallAfterVisit)}</strong>.</>
+                          : <> — this visit is covered. Remaining after this visit: <strong>{fmt(creditAfterVisit)}</strong>.</>}
+                      </span>
+                    ) : (
+                      <span className="amount-expense">
+                        Outstanding dues: <strong>{fmt(outstandingDue)}</strong>
+                      </span>
+                    )}
+                    <span className={`badge badge-${previewStatus}`}>{previewStatus}</span>
+                  </div>
+                )}
               </div>
             </div>
             <div className="modal-footer" style={{ alignItems: 'center' }}>
