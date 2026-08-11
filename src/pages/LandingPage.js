@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-export default function LandingPage({ onLogin }) {
+export default function LandingPage({ onLogin, notice = '' }) {
   const [form, setForm] = useState({ user_id: '', user_pass: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -47,6 +47,9 @@ export default function LandingPage({ onLogin }) {
         <div style={rightPanelStyle}>
           <h2 style={{ margin: 0, fontSize: 24 }}>Welcome Back</h2>
           <p style={{ color: '#64748b', marginTop: 8 }}>Sign in to continue to your dashboard.</p>
+
+          {/* Kept separate from `error` so a failed login replaces the login error, not this banner. */}
+          {notice ? <div style={noticeStyle}>{notice}</div> : null}
 
           <form onSubmit={handleSubmit} style={{ marginTop: 20 }}>
             <label style={labelStyle}>User ID</label>
@@ -146,4 +149,14 @@ const errorStyle = {
   padding: '10px 12px',
   borderRadius: 8,
   border: '1px solid #fecaca',
+};
+
+// Amber, not red — an expired session is expected housekeeping, not a failure the user caused.
+const noticeStyle = {
+  marginTop: 14,
+  color: '#92400e',
+  background: '#fffbeb',
+  padding: '10px 12px',
+  borderRadius: 8,
+  border: '1px solid #fde68a',
 };

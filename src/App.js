@@ -13,6 +13,13 @@ import Therapists from './pages/Therapists';
 import Reports from './pages/Reports';
 import LandingPage from './pages/LandingPage';
 import { CurrencyProvider } from './context/CurrencyContext';
+import {
+  SESSION_EXPIRED_EVENT, ADMIN_SESSION_EXPIRED_EVENT,
+  getTokenExpiry, isTokenExpired,
+  readAuth, writeAuth, clearAuth,
+  readAdminToken, writeAdminToken, clearAdminToken,
+  clearLegacyStorage,
+} from './utils/session';
 import './App.css';
 
 const NAV = [
@@ -27,8 +34,7 @@ const NAV = [
   { id: 'reports', label: 'Reports', icon: FileBarChart },
 ];
 
-const AUTH_STORAGE_KEY = 'physioClinicAuth';
-const ADMIN_STORAGE_KEY = 'physioClinicAdmin';
+const SESSION_EXPIRED_MESSAGE = 'Your session expired. Please sign in again.';
 
 export default function App() {
   const [page, setPage] = useState(() => {
@@ -57,58 +63,43 @@ export default function App() {
   const [adminError, setAdminError] = useState('');
   const [adminLoading, setAdminLoading] = useState(false);
   const [adminToken, setAdminToken] = useState('');
+  const [sessionNotice, setSessionNotice] = useState('');
 
+  // Restore the session on boot — but only if its token is still alive. A stored-but-expired token
+  // used to sail through this check and drop the user on a dashboard where every call 401s.
   useEffect(() => {
-    if (typeof window === 'undefined') return undefined;
+    if (typeof window === 'undefined') return;
+    clearLegacyStorage();
 
-    const storedAuth = window.localStorage.getItem(AUTH_STORAGE_KEY);
-    if (storedAuth) {
-      try {
-        const parsed = JSON.parse(storedAuth);
-        if (parsed?.token) {
-          setToken(parsed.token);
-          setClinicId(parsed.clinicId || '');
-          setClinicName(parsed.clinicName || '');
-          setCurrencyCode(parsed.currencyCode || 'INR');
-          setCurrencySymbol(parsed.currencySymbol || '₹');
-          setLoggedIn(true);
-          if (page === 'landing') {
-            setPage('dashboard');
-          }
-        }
-      } catch (error) {
-        console.warn('Failed to restore auth from localStorage', error);
-      }
-    }
-
-    const storedAdminToken = window.localStorage.getItem(ADMIN_STORAGE_KEY);
-    if (storedAdminToken) {
-      setAdminToken(storedAdminToken);
-      setAdminAuthorized(true);
-    }
-
-    const originalFetch = window.fetch.bind(window);
-    window.fetch = (input, init) => {
-      const headers = new Headers(init?.headers || {});
-      const requestUrl = typeof input === 'string' ? input : input?.url || '';
-      const isAdminRequest = /\/api\/(admin|clinic-master|clinic-users)(\/|$)/.test(requestUrl);
-      if (isAdminRequest) {
-        const currentAdminToken = window.localStorage.getItem(ADMIN_STORAGE_KEY);
-        if (currentAdminToken) headers.set('Authorization', `Bearer ${currentAdminToken}`);
+    const storedAuth = readAuth();
+    if (storedAuth?.token) {
+      if (isTokenExpired(storedAuth.token)) {
+        clearAuth();
+        setSessionNotice(SESSION_EXPIRED_MESSAGE);
       } else {
-        let currentToken = '';
-        try {
-          const parsed = JSON.parse(window.localStorage.getItem(AUTH_STORAGE_KEY) || 'null');
-          currentToken = parsed?.token || '';
-        } catch (error) { currentToken = ''; }
-        if (currentToken) headers.set('Authorization', `Bearer ${currentToken}`);
+        setToken(storedAuth.token);
+        setClinicId(storedAuth.clinicId || '');
+        setClinicName(storedAuth.clinicName || '');
+        setCurrencyCode(storedAuth.currencyCode || 'INR');
+        setCurrencySymbol(storedAuth.currencySymbol || '₹');
+        setLoggedIn(true);
+        if (page === 'landing') {
+          setPage('dashboard');
+        }
       }
-      return originalFetch(input, { ...init, headers });
-    };
-    return () => {
-      window.fetch = originalFetch;
-    };
-  }, [token, adminToken]);
+    }
+
+    const storedAdminToken = readAdminToken();
+    if (storedAdminToken) {
+      if (isTokenExpired(storedAdminToken)) {
+        clearAdminToken();
+      } else {
+        setAdminToken(storedAdminToken);
+        setAdminAuthorized(true);
+      }
+    }
+    // Runs once on mount only: this restores the session, it must not re-run when state changes.
+  }, []);
 
   const navigate = (p, patient = null) => {
     setPage(p);
@@ -144,9 +135,7 @@ export default function App() {
         setAdminAuthorized(true);
         const newAdminToken = data.adminToken || '';
         setAdminToken(newAdminToken);
-        if (typeof window !== 'undefined' && newAdminToken) {
-          window.localStorage.setItem(ADMIN_STORAGE_KEY, newAdminToken);
-        }
+        writeAdminToken(newAdminToken);
       }
     } catch (err) {
       setAdminError('Unable to validate admin password.');
@@ -171,10 +160,24 @@ export default function App() {
     setAdminAuthorized(false);
     setAdminPassword('');
     setAdminError('');
-    if (typeof window !== 'undefined') {
-      window.localStorage.removeItem(AUTH_STORAGE_KEY);
-      window.localStorage.removeItem(ADMIN_STORAGE_KEY);
-    }
+    clearAuth();
+    clearAdminToken();
+  };
+
+  // A dead clinic session: wipe it and send the user to the login screen with an explanation,
+  // rather than leaving them on a shell where every request fails with "Invalid token".
+  const handleSessionExpired = () => {
+    handleLogout();
+    setSessionNotice(SESSION_EXPIRED_MESSAGE);
+  };
+
+  // A dead admin token only closes the admin screens — the clinic session is untouched.
+  const handleAdminSessionExpired = () => {
+    setAdminToken('');
+    setAdminAuthorized(false);
+    setAdminPassword('');
+    setAdminError(SESSION_EXPIRED_MESSAGE);
+    clearAdminToken();
   };
 
   const handleLogin = async ({ user_id, user_pass }) => {
@@ -199,27 +202,78 @@ export default function App() {
     setClinicName(resolvedClinicName);
     setCurrencyCode(resolvedCurrencyCode);
     setCurrencySymbol(resolvedCurrencySymbol);
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem(
-        AUTH_STORAGE_KEY,
-        JSON.stringify({
-          token: resolvedToken,
-          clinicId: resolvedClinicId,
-          clinicName: resolvedClinicName,
-          currencyCode: resolvedCurrencyCode,
-          currencySymbol: resolvedCurrencySymbol,
-        })
-      );
-    }
+    setSessionNotice('');
+    writeAuth({
+      token: resolvedToken,
+      clinicId: resolvedClinicId,
+      clinicName: resolvedClinicName,
+      currencyCode: resolvedCurrencyCode,
+      currencySymbol: resolvedCurrencySymbol,
+    });
     if (page === 'landing') {
       navigate('dashboard');
     }
   };
 
+  // Attach the bearer token to every API call, and treat a 401 back from one as a dead session.
+  // Installed once: it reads tokens from storage rather than state, so it never needs re-wrapping
+  // (re-running it would nest wrappers, since the "original" fetch would be the previous wrapper).
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const originalFetch = window.fetch.bind(window);
+    window.fetch = async (input, init) => {
+      const headers = new Headers(init?.headers || {});
+      const requestUrl = typeof input === 'string' ? input : input?.url || '';
+      const isApiRequest = /\/api\//.test(requestUrl);
+      const isAdminRequest = /\/api\/(admin|clinic-master|clinic-users)(\/|$)/.test(requestUrl);
+      // Login and admin-validate answer 401 for a wrong password. Those are not expired sessions,
+      // and must never trigger a logout.
+      const isAuthEndpoint = /\/api\/(clinic-users\/login|admin\/validate)(\/|$)/.test(requestUrl);
+
+      if (isAdminRequest) {
+        const currentAdminToken = readAdminToken();
+        if (currentAdminToken) headers.set('Authorization', `Bearer ${currentAdminToken}`);
+      } else {
+        const currentToken = readAuth()?.token || '';
+        if (currentToken) headers.set('Authorization', `Bearer ${currentToken}`);
+      }
+
+      const response = await originalFetch(input, { ...init, headers });
+      if (response.status === 401 && isApiRequest && !isAuthEndpoint) {
+        window.dispatchEvent(new Event(isAdminRequest ? ADMIN_SESSION_EXPIRED_EVENT : SESSION_EXPIRED_EVENT));
+      }
+      return response;
+    };
+    return () => { window.fetch = originalFetch; };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const onExpired = () => handleSessionExpired();
+    const onAdminExpired = () => handleAdminSessionExpired();
+    window.addEventListener(SESSION_EXPIRED_EVENT, onExpired);
+    window.addEventListener(ADMIN_SESSION_EXPIRED_EVENT, onAdminExpired);
+    return () => {
+      window.removeEventListener(SESSION_EXPIRED_EVENT, onExpired);
+      window.removeEventListener(ADMIN_SESSION_EXPIRED_EVENT, onAdminExpired);
+    };
+    // Handlers only call state setters, which are stable — a mount-time closure stays correct.
+  }, []);
+
+  // Expire an idle open tab the moment the token dies, instead of waiting for the next click to fail.
+  useEffect(() => {
+    if (!token) return undefined;
+    const expiry = getTokenExpiry(token);
+    if (expiry === null) return undefined;
+    const timer = setTimeout(handleSessionExpired, Math.max(0, expiry - Date.now()));
+    return () => clearTimeout(timer);
+    // Keyed on the token alone; handleSessionExpired only calls stable state setters.
+  }, [token]);
+
   if (!loggedIn && !isAdminPage) {
     return (
       <CurrencyProvider code={currencyCode} symbol={currencySymbol}>
-        <LandingPage onLogin={handleLogin} />
+        <LandingPage onLogin={handleLogin} notice={sessionNotice} />
       </CurrencyProvider>
     );
   }
