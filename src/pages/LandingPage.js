@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 
 export default function LandingPage({ onLogin, notice = '' }) {
   const [form, setForm] = useState({ user_id: '', user_pass: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -62,14 +64,25 @@ export default function LandingPage({ onLogin, notice = '' }) {
             />
 
             <label style={labelStyle}>Password</label>
-            <input
-              name="user_pass"
-              type="password"
-              value={form.user_pass}
-              onChange={handleChange}
-              placeholder="Enter password"
-              style={inputStyle}
-            />
+            <div style={passwordWrapStyle}>
+              <input
+                name="user_pass"
+                type={showPassword ? 'text' : 'password'}
+                value={form.user_pass}
+                onChange={handleChange}
+                placeholder="Enter password"
+                style={{ ...inputStyle, marginBottom: 0, paddingRight: 40 }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                style={eyeButtonStyle}
+                tabIndex={-1}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
 
             {error ? <div style={errorStyle}>{error}</div> : null}
 
@@ -140,6 +153,25 @@ const buttonStyle = {
   cursor: 'pointer',
   fontWeight: 600,
   marginTop: 8,
+};
+
+const passwordWrapStyle = {
+  position: 'relative',
+  marginBottom: 14,
+};
+
+const eyeButtonStyle = {
+  position: 'absolute',
+  right: 10,
+  top: '50%',
+  transform: 'translateY(-50%)',
+  border: 'none',
+  background: 'transparent',
+  color: '#64748b',
+  cursor: 'pointer',
+  padding: 4,
+  display: 'flex',
+  alignItems: 'center',
 };
 
 const errorStyle = {

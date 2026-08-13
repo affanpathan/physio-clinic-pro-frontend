@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Activity, Users, Calendar, BookOpen, BarChart2, Menu, X, Stethoscope, CreditCard, Clock, LogOut, FileBarChart } from 'lucide-react';
+import { Activity, Users, Calendar, BookOpen, BarChart2, Menu, X, Stethoscope, CreditCard, Clock, LogOut, FileBarChart, KeyRound } from 'lucide-react';
 import Dashboard from './pages/Dashboard';
 import Patients from './pages/Patients';
 import Visits from './pages/Visits';
@@ -12,6 +12,7 @@ import ClinicUsers from './pages/ClinicUsers';
 import Therapists from './pages/Therapists';
 import Reports from './pages/Reports';
 import LandingPage from './pages/LandingPage';
+import ChangePassword from './pages/ChangePassword';
 import { CurrencyProvider } from './context/CurrencyContext';
 import {
   SESSION_EXPIRED_EVENT, ADMIN_SESSION_EXPIRED_EVENT,
@@ -228,7 +229,7 @@ export default function App() {
       const isAdminRequest = /\/api\/(admin|clinic-master|clinic-users)(\/|$)/.test(requestUrl);
       // Login and admin-validate answer 401 for a wrong password. Those are not expired sessions,
       // and must never trigger a logout.
-      const isAuthEndpoint = /\/api\/(clinic-users\/login|admin\/validate)(\/|$)/.test(requestUrl);
+      const isAuthEndpoint = /\/api\/(clinic-users\/login|admin\/validate|change-password)(\/|$)/.test(requestUrl);
 
       if (isAdminRequest) {
         const currentAdminToken = readAdminToken();
@@ -311,9 +312,17 @@ export default function App() {
         <div className="sidebar-footer">
           {sidebarOpen && <p className="version">v1.0.0 &nbsp;·&nbsp; 2026 <br />Affan Pathan #9427778630</p>}
           <button
+            className={`nav-item ${page === 'change-password' ? 'active' : ''}`}
+            onClick={() => navigate('change-password')}
+            style={{ marginTop: 12, width: '100%', justifyContent: 'flex-start' }}
+          >
+            <KeyRound size={18} />
+            {sidebarOpen && <span>Change Password</span>}
+          </button>
+          <button
             className="nav-item"
             onClick={handleLogout}
-            style={{ marginTop: 12, width: '100%', justifyContent: 'flex-start' }}
+            style={{ marginTop: 8, width: '100%', justifyContent: 'flex-start' }}
           >
             <LogOut size={18} />
             {sidebarOpen && <span>Logout</span>}
@@ -335,6 +344,7 @@ export default function App() {
           {page === 'clinic-users' && adminAuthorized && <ClinicUsers />}
           {page === 'therapists' && <Therapists clinicId={clinicId} />}
           {page === 'reports' && <Reports />}
+          {page === 'change-password' && <ChangePassword onPasswordChanged={handleLogout} />}
         </div>
         {isAdminPage && !adminAuthorized && (
           <div className="modal-overlay" style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.75)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
