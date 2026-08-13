@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import { Download } from 'lucide-react';
+import { downloadCsvExport } from '../utils/exportCsv';
 
 const API_URL = process.env.REACT_APP_API_URL || '/api';
 
@@ -102,6 +104,15 @@ export default function Therapists({ clinicId }) {
     });
   };
 
+  const handleExport = async () => {
+    setMessage('');
+    try {
+      await downloadCsvExport(`${API_URL}/therapists/export`, 'therapists_export.csv');
+    } catch (err) {
+      setMessage(err.message);
+    }
+  };
+
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this therapist record?')) return;
     try {
@@ -139,7 +150,10 @@ export default function Therapists({ clinicId }) {
       </form>
 
       <div style={{ background: '#fff', padding: 16, borderRadius: 8 }}>
-        <h3>Therapist Records</h3>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h3>Therapist Records</h3>
+          <button className="btn btn-secondary" onClick={handleExport}><Download size={15} />Export</button>
+        </div>
         {loading ? <div>Loading...</div> : (
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>

@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Search, X, CreditCard, Calendar, FileText } from 'lucide-react';
+import { Search, X, CreditCard, Calendar, FileText, Download } from 'lucide-react';
 import { useCurrency } from '../context/CurrencyContext';
 import { useKeyboardListNav } from '../hooks/useKeyboardListNav';
 import { getTherapyRows } from '../utils/therapy';
+import { downloadCsvExport } from '../utils/exportCsv';
 const API_URL = process.env.REACT_APP_API_URL || '/api';
 
 export default function PatientLedger({ selectedPatient, setSelectedPatient }) {
@@ -13,6 +14,7 @@ export default function PatientLedger({ selectedPatient, setSelectedPatient }) {
   const [ledger, setLedger] = useState(null);
   const [loading, setLoading] = useState(false);
   const [tab, setTab] = useState('visits');
+  const [exportError, setExportError] = useState('');
 
   useEffect(() => {
     if (search.length >= 2) {
@@ -52,6 +54,14 @@ export default function PatientLedger({ selectedPatient, setSelectedPatient }) {
 
   const { highlightedIndex: patHighlight, setHighlightedIndex: setPatHighlight, onKeyDown: onPatSearchKeyDown } =
     useKeyboardListNav(patients, selectPatient, () => setPatients([]));
+
+  const handleExport = async () => {
+    if (!selectedPatient) return;
+    setExportError('');
+    try {
+      await downloadCsvExport(`${API_URL}/patient-ledger/${selectedPatient.id}/export?type=${tab}`, `patient-ledger-${tab}_export.csv`);
+    } catch (e) { setExportError(e.message); }
+  };
 
   const displayDate = (d) => {
     if (!d) return '—';
@@ -169,14 +179,21 @@ export default function PatientLedger({ selectedPatient, setSelectedPatient }) {
             </div>
           </div>
 
-          <div className="tabs">
-            <button className={`tab ${tab === 'visits' ? 'active' : ''}`} onClick={() => setTab('visits')}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><Calendar size={13} />Visit History ({ledger.visits.length})</span>
-            </button>
-            <button className={`tab ${tab === 'payments' ? 'active' : ''}`} onClick={() => setTab('payments')}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><CreditCard size={13} />Payments ({ledger.payments.length})</span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+            <div className="tabs" style={{ marginBottom: 0 }}>
+              <button className={`tab ${tab === 'visits' ? 'active' : ''}`} onClick={() => setTab('visits')}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><Calendar size={13} />Visit History ({ledger.visits.length})</span>
+              </button>
+              <button className={`tab ${tab === 'payments' ? 'active' : ''}`} onClick={() => setTab('payments')}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><CreditCard size={13} />Payments ({ledger.payments.length})</span>
+              </button>
+            </div>
+            <button className="btn btn-secondary" onClick={handleExport}>
+              <Download size={15} />Export {tab === 'visits' ? 'Visits' : 'Payments'}
             </button>
           </div>
+
+          {exportError && <div className="alert alert-error" style={{ marginTop: 4 }}>{exportError}</div>}
 
           {tab === 'visits' && (
             <div className="card">

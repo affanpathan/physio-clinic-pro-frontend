@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Search, X } from 'lucide-react';
+import { Search, X, Download } from 'lucide-react';
 import { useCurrency } from '../context/CurrencyContext';
 import { useKeyboardListNav } from '../hooks/useKeyboardListNav';
 import { useEscapeKey } from '../hooks/useEscapeKey';
+import { downloadCsvExport } from '../utils/exportCsv';
 const API_URL = process.env.REACT_APP_API_URL || '/api';
 
 const fmtDate = value => {
@@ -23,6 +24,7 @@ export default function PatientDues() {
   const [ledgerPatient, setLedgerPatient] = useState(null);
   const [ledgerData, setLedgerData] = useState(null);
   const [ledgerLoading, setLedgerLoading] = useState(false);
+  const [exportError, setExportError] = useState('');
 
   const loadDues = useCallback(() => {
     setLoading(true);
@@ -60,6 +62,14 @@ export default function PatientDues() {
 
   const { highlightedIndex: patHighlight, setHighlightedIndex: setPatHighlight, onKeyDown: onPatSearchKeyDown } =
     useKeyboardListNav(patients, selectPatient, () => setPatients([]));
+
+  const handleExport = async () => {
+    setExportError('');
+    try {
+      const qs = selectedPatient?.id ? `?patient_id=${selectedPatient.id}` : '';
+      await downloadCsvExport(`${API_URL}/patient-dues/export${qs}`, 'patient-dues_export.csv');
+    } catch (e) { setExportError(e.message); }
+  };
 
   const openLedgerModal = (patient) => {
     setLedgerPatient(patient);
@@ -156,7 +166,11 @@ export default function PatientDues() {
             </div>
           )}
         </div>
+        <div style={{ flex: 1 }} />
+        <button className="btn btn-secondary" onClick={handleExport}><Download size={15} />Export</button>
       </div>
+
+      {exportError && <div className="alert alert-error" style={{ marginBottom: 12 }}>{exportError}</div>}
 
       <div className="ledger-summary">
         <div className="ledger-summary-item">

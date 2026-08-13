@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, X, ChevronLeft, ChevronRight, Edit2, Trash2 } from 'lucide-react';
+import { Plus, X, ChevronLeft, ChevronRight, Edit2, Trash2, Download } from 'lucide-react';
 import { useCurrency } from '../context/CurrencyContext';
 import { useKeyboardListNav } from '../hooks/useKeyboardListNav';
 import { useEscapeKey } from '../hooks/useEscapeKey';
 import { getTherapyRows } from '../utils/therapy';
+import { downloadCsvExport } from '../utils/exportCsv';
 const API_URL = process.env.REACT_APP_API_URL || '/api';
 
 const THERAPY_TYPES = ['Bio Lite','Premium Plus','Manual Therapy', 'Exercise Therapy', 'Electrotherapy', 'Ultrasound', 'TENS', 'Heat Therapy', 'Cold Therapy', 'Dry Needling', 'Cupping', 'Hydrotherapy', 'Taping', 'Post-surgical Rehab', 'Sports Rehab', 'Other'];
@@ -32,6 +33,7 @@ export default function Visits() {
   const [priorBalance, setPriorBalance] = useState(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [exportError, setExportError] = useState('');
   const [viewMode, setViewMode] = useState('day'); // day | all
 
   const loadVisits = useCallback(() => {
@@ -75,6 +77,14 @@ export default function Visits() {
   const shiftDate = (days) => {
     const d = new Date(date); d.setDate(d.getDate() + days);
     setDate(d.toISOString().split('T')[0]);
+  };
+
+  const handleExport = async () => {
+    setExportError('');
+    try {
+      const qs = viewMode === 'day' ? `?date=${date}` : '';
+      await downloadCsvExport(`${API_URL}/visits/export${qs}`, 'visits_export.csv');
+    } catch (e) { setExportError(e.message); }
   };
 
   // Balance the patient carries into this visit: positive = dues, negative = advance credit.
@@ -200,8 +210,11 @@ export default function Visits() {
           </div>
         )}
         <div style={{ flex: 1 }} />
+        <button className="btn btn-secondary" onClick={handleExport}><Download size={15} />Export</button>
         <button className="btn btn-primary" onClick={openAdd}><Plus size={15} />Record Visit</button>
       </div>
+
+      {exportError && <div className="alert alert-error" style={{ marginBottom: 12 }}>{exportError}</div>}
 
       {visits.length > 0 && (
         <div className="ledger-summary">

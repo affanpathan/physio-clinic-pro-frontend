@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, X, Trash2, ChevronLeft, ChevronRight, TrendingUp, TrendingDown } from 'lucide-react';
+import { Plus, X, Trash2, ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Download } from 'lucide-react';
 import { useCurrency } from '../context/CurrencyContext';
 import { useKeyboardListNav } from '../hooks/useKeyboardListNav';
 import { useEscapeKey } from '../hooks/useEscapeKey';
 import { getTherapyRows } from '../utils/therapy';
 import { truncateNote } from '../utils/text';
+import { downloadCsvExport } from '../utils/exportCsv';
 const API_URL = process.env.REACT_APP_API_URL || '/api';
 
 const EXPENSE_CATEGORIES = ['Rent', 'Utilities', 'Salaries', 'Equipment', 'Medicines/Supplies', 'Maintenance', 'Marketing', 'Insurance', 'Miscellaneous'];
@@ -66,6 +67,7 @@ export default function DailyLedger() {
   const [form, setForm] = useState(EMPTY_ENTRY);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [exportError, setExportError] = useState('');
   const [viewMode, setViewMode] = useState('day');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -125,6 +127,15 @@ export default function DailyLedger() {
   const shiftDate = (days) => {
     const d = new Date(date); d.setDate(d.getDate() + days);
     setDate(d.toISOString().split('T')[0]);
+  };
+
+  const handleExport = async () => {
+    setExportError('');
+    try {
+      let qs = viewMode === 'day' ? `date=${date}` : (dateFrom && dateTo ? `date_from=${dateFrom}&date_to=${dateTo}` : '');
+      if (statusFilter !== 'all') qs += (qs ? '&' : '') + `entry_type=${statusFilter}`;
+      await downloadCsvExport(`${API_URL}/ledger/export${qs ? `?${qs}` : ''}`, 'daily-ledger_export.csv');
+    } catch (e) { setExportError(e.message); }
   };
 
   const handleSave = async () => {
@@ -205,9 +216,12 @@ export default function DailyLedger() {
         </div>
 
         <div style={{ flex: 1 }} />
+        <button className="btn btn-secondary" onClick={handleExport}><Download size={15} />Export</button>
         <button className="btn btn-secondary" onClick={() => openAdd('income')}><TrendingUp size={15} />Add Income</button>
         <button className="btn btn-primary" onClick={() => openAdd('expense')}><Plus size={15} />Add Expense</button>
       </div>
+
+      {exportError && <div className="alert alert-error" style={{ marginBottom: 12 }}>{exportError}</div>}
 
       <div className="ledger-summary">
         <div className="ledger-summary-item">

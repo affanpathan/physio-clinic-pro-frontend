@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, Download } from 'lucide-react';
 import { useCurrency } from '../context/CurrencyContext';
 import { useKeyboardListNav } from '../hooks/useKeyboardListNav';
 import { truncateNote } from '../utils/text';
+import { downloadCsvExport } from '../utils/exportCsv';
 
 const API_URL = process.env.REACT_APP_API_URL || '/api';
 const PAGE_SIZES = [25, 50, 75, 100];
@@ -38,6 +39,7 @@ export default function Reports() {
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [exportError, setExportError] = useState('');
   const [touched, setTouched] = useState(false);
 
   useEffect(() => {
@@ -104,6 +106,19 @@ export default function Reports() {
   const changePageSize = (e) => {
     setPageSize(Number(e.target.value));
     setPage(1);
+  };
+
+  const handleExport = async () => {
+    if (!applied) return;
+    setExportError('');
+    try {
+      const params = new URLSearchParams({ date_from: applied.dateFrom, date_to: applied.dateTo });
+      if (applied.entryType) params.set('entry_type', applied.entryType);
+      if (applied.therapistName) params.set('therapist_name', applied.therapistName);
+      if (applied.patientId) params.set('patient_id', applied.patientId);
+      if (applied.paymentMethod) params.set('payment_method', applied.paymentMethod);
+      await downloadCsvExport(`${API_URL}/reports/export?${params.toString()}`, 'reports_export.csv');
+    } catch (e) { setExportError(e.message); }
   };
 
   const rangeStart = total === 0 ? 0 : (page - 1) * pageSize + 1;
@@ -184,12 +199,16 @@ export default function Reports() {
 
         <div style={{ flex: 1 }} />
         <button className="btn btn-primary" onClick={handleSearch}>Search</button>
+        <button className="btn btn-secondary" onClick={handleExport} disabled={!applied} title={!applied ? 'Run a search first' : 'Export current results'}>
+          <Download size={15} />Export
+        </button>
       </div>
 
       {touched && (!dateFrom || !dateTo) && (
         <div className="alert alert-error" style={{ marginTop: 4 }}>From Date and To Date are required.</div>
       )}
       {error && <div className="alert alert-error" style={{ marginTop: 4 }}>{error}</div>}
+      {exportError && <div className="alert alert-error" style={{ marginTop: 4 }}>{exportError}</div>}
 
       {summary && (
         <div className="ledger-summary">

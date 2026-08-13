@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Search, Plus, X, Edit2, Activity, Eye } from 'lucide-react';
+import { Search, Plus, X, Edit2, Activity, Eye, Download } from 'lucide-react';
 import { useEscapeKey } from '../hooks/useEscapeKey';
+import { downloadCsvExport } from '../utils/exportCsv';
 const API_URL = process.env.REACT_APP_API_URL || '/api';
 
 const EMPTY_PATIENT = {
@@ -18,6 +19,7 @@ export default function Patients({ navigate, setSelectedPatient }) {
   const [form, setForm] = useState(EMPTY_PATIENT);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [exportError, setExportError] = useState('');
 
   const load = useCallback(() => {
     setLoading(true);
@@ -53,6 +55,14 @@ export default function Patients({ navigate, setSelectedPatient }) {
 
   const viewLedger = (p) => { setSelectedPatient(p); navigate('patient-ledger', p); };
 
+  const handleExport = async () => {
+    setExportError('');
+    try {
+      const qs = search ? `?search=${encodeURIComponent(search)}` : '';
+      await downloadCsvExport(`${API_URL}/patients/export${qs}`, 'patients_export.csv');
+    } catch (e) { setExportError(e.message); }
+  };
+
   useEscapeKey(showModal, () => setShowModal(false));
 
   return (
@@ -67,8 +77,11 @@ export default function Patients({ navigate, setSelectedPatient }) {
           <Search size={15} className="search-icon" />
           <input placeholder="Search by name, ID, or phone..." value={search} onChange={e => setSearch(e.target.value)} />
         </div>
+        <button className="btn btn-secondary" onClick={handleExport}><Download size={15} />Export</button>
         <button className="btn btn-primary" onClick={openAdd}><Plus size={15} />Add Patient</button>
       </div>
+
+      {exportError && <div className="alert alert-error" style={{ marginBottom: 12 }}>{exportError}</div>}
 
       <div className="card">
         {loading && <div className="empty-state"><p>Loading patients...</p></div>}
