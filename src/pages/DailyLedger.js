@@ -4,6 +4,7 @@ import { useCurrency } from '../context/CurrencyContext';
 import { useKeyboardListNav } from '../hooks/useKeyboardListNav';
 import { useEscapeKey } from '../hooks/useEscapeKey';
 import { getTherapyRows } from '../utils/therapy';
+import { truncateNote } from '../utils/text';
 const API_URL = process.env.REACT_APP_API_URL || '/api';
 
 const EXPENSE_CATEGORIES = ['Rent', 'Utilities', 'Salaries', 'Equipment', 'Medicines/Supplies', 'Maintenance', 'Marketing', 'Insurance', 'Miscellaneous'];
@@ -265,6 +266,7 @@ export default function DailyLedger() {
                   <th>Time</th>
                   <th>Type</th>
                   <th>Category</th>
+                  <th>Note</th>
                   <th>Therapy</th>
                   <th>Payment</th>
                   <th>Patient</th>
@@ -281,6 +283,9 @@ export default function DailyLedger() {
                     <td style={{ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{displayTime(e.created_at)}</td>
                     <td><span className={`badge badge-${e.entry_type}`}>{e.entry_type}</span></td>
                     <td style={{ color: 'var(--slate)', fontSize: 13 }}>{e.visit_id ? '—' : e.category}</td>
+                    <td style={{ fontSize: 12.5, color: 'var(--slate)' }} title={e.session_notes || ''}>
+                      {e.visit_id ? truncateNote(e.session_notes) : '—'}
+                    </td>
                     <td style={{ fontSize: 12.5 }}>
                       {getTherapyRows(e).length
                         ? getTherapyRows(e).map((t, i) => (

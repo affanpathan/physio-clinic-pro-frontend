@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { useCurrency } from '../context/CurrencyContext';
 import { useKeyboardListNav } from '../hooks/useKeyboardListNav';
+import { truncateNote } from '../utils/text';
 
 const API_URL = process.env.REACT_APP_API_URL || '/api';
 const PAGE_SIZES = [25, 50, 75, 100];
@@ -233,6 +234,7 @@ export default function Reports() {
                     <th>Date</th>
                     <th>Type</th>
                     <th>Category</th>
+                    <th>Note</th>
                     <th>Description</th>
                     <th>Patient</th>
                     <th>Therapist</th>
@@ -246,6 +248,7 @@ export default function Reports() {
                       <td style={{ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{displayDate(r.entry_date)}</td>
                       <td><span className={`badge badge-${r.entry_type}`}>{r.entry_type}</span></td>
                       <td style={{ color: 'var(--slate)', fontSize: 13 }}>{r.visit_id ? '—' : (r.category || '—')}</td>
+                      <td style={{ fontSize: 13 }} title={r.session_notes || ''}>{r.visit_id ? truncateNote(r.session_notes) : '—'}</td>
                       <td style={{ fontSize: 13 }}>{r.description || '—'}</td>
                       <td style={{ fontSize: 12.5, color: 'var(--slate-light)' }}>{r.first_name ? `${r.first_name} ${r.last_name}` : '—'}</td>
                       <td style={{ fontSize: 12.5, color: 'var(--slate-light)' }}>{r.visit_id ? (r.therapist_name || '—') : '—'}</td>
