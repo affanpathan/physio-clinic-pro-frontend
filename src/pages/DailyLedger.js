@@ -9,7 +9,8 @@ import { downloadCsvExport } from '../utils/exportCsv';
 const API_URL = process.env.REACT_APP_API_URL || '/api';
 
 const EXPENSE_CATEGORIES = ['Rent', 'Utilities', 'Salaries', 'Equipment', 'Medicines/Supplies', 'Maintenance', 'Marketing', 'Insurance', 'Miscellaneous'];
-const INCOME_CATEGORIES = ['Therapy Fee', 'Consultation', 'Package Sale', 'Other Income'];
+const INCOME_CATEGORIES = ['Therapy Fee', 'Consultation', 'Package Sale', 'Product Sale', 'Other Income'];
+const SALE_CATEGORIES = ['Product Sale', 'Package Sale'];
 
 const EMPTY_ENTRY = {
   entry_date: new Date().toISOString().split('T')[0],
@@ -296,7 +297,14 @@ export default function DailyLedger() {
                     <td style={{ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{displayDate(e.entry_date)}</td>
                     <td style={{ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{displayTime(e.created_at)}</td>
                     <td><span className={`badge badge-${e.entry_type}`}>{e.entry_type}</span></td>
-                    <td style={{ color: 'var(--slate)', fontSize: 13 }}>{e.visit_id ? '—' : e.category}</td>
+                    <td style={{ color: 'var(--slate)', fontSize: 13 }}>
+                      {e.visit_id ? '—' : (
+                        <>
+                          {e.category}
+                          {SALE_CATEGORIES.includes(e.category) && <span className="badge badge-sale" style={{ marginLeft: 6 }}>Sale</span>}
+                        </>
+                      )}
+                    </td>
                     <td style={{ fontSize: 12.5, color: 'var(--slate)' }} title={e.session_notes || ''}>
                       {e.visit_id ? truncateNote(e.session_notes) : '—'}
                     </td>

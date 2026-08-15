@@ -143,6 +143,7 @@ tbody td { padding: 11px 14px; color: var(--slate); vertical-align: middle; }
 .badge-inactive { background: #F3F4F6; color: #6B7280; }
 .badge-income { background: var(--green-light); color: #1a7a50; }
 .badge-expense { background: var(--coral-light); color: #c0392b; }
+.badge-sale { background: #EEF2FF; color: #4338CA; }
 
 /* ── Buttons ── */
 .btn {

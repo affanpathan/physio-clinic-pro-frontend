@@ -12,6 +12,7 @@ import ClinicUsers from './pages/ClinicUsers';
 import Therapists from './pages/Therapists';
 import Reports from './pages/Reports';
 import LandingPage from './pages/LandingPage';
+import Pricing from './pages/Pricing';
 import ChangePassword from './pages/ChangePassword';
 import { CurrencyProvider } from './context/CurrencyContext';
 import {
@@ -272,9 +273,12 @@ export default function App() {
   }, [token]);
 
   if (!loggedIn && !isAdminPage) {
+    if (page === 'pricing') {
+      return <Pricing navigate={navigate} />;
+    }
     return (
       <CurrencyProvider code={currencyCode} symbol={currencySymbol}>
-        <LandingPage onLogin={handleLogin} notice={sessionNotice} />
+        <LandingPage onLogin={handleLogin} notice={sessionNotice} navigate={navigate} />
       </CurrencyProvider>
     );
   }

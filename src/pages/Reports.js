@@ -7,12 +7,24 @@ import { downloadCsvExport } from '../utils/exportCsv';
 
 const API_URL = process.env.REACT_APP_API_URL || '/api';
 const PAGE_SIZES = [25, 50, 75, 100];
+const SALE_CATEGORIES = ['Product Sale', 'Package Sale'];
 
 const displayDate = (d) => {
   if (!d) return '—';
   if (typeof d === 'string') return d.includes('T') ? d.split('T')[0] : d.slice(0, 10);
   return '—';
 };
+
+function buildReportQueryParams({ dateFrom, dateTo, entryType, therapistName, patientId, paymentMethod }) {
+  const params = new URLSearchParams({ date_from: dateFrom, date_to: dateTo });
+  if (entryType === 'sale') { params.set('entry_type', 'income'); params.set('category', SALE_CATEGORIES.join(',')); }
+  else if (entryType === 'income_expense') { params.set('exclude_category', SALE_CATEGORIES.join(',')); }
+  else if (entryType) { params.set('entry_type', entryType); }
+  if (therapistName) params.set('therapist_name', therapistName);
+  if (patientId) params.set('patient_id', patientId);
+  if (paymentMethod) params.set('payment_method', paymentMethod);
+  return params;
+}
 
 export default function Reports() {
   const { symbol } = useCurrency();
@@ -72,11 +84,9 @@ export default function Reports() {
     if (!applied) return;
     setLoading(true); setError('');
     const controller = new AbortController();
-    const params = new URLSearchParams({ date_from: applied.dateFrom, date_to: applied.dateTo, page: String(page), pageSize: String(pageSize) });
-    if (applied.entryType) params.set('entry_type', applied.entryType);
-    if (applied.therapistName) params.set('therapist_name', applied.therapistName);
-    if (applied.patientId) params.set('patient_id', applied.patientId);
-    if (applied.paymentMethod) params.set('payment_method', applied.paymentMethod);
+    const params = buildReportQueryParams(applied);
+    params.set('page', String(page));
+    params.set('pageSize', String(pageSize));
 
     fetch(`${API_URL}/reports?${params.toString()}`, { signal: controller.signal })
       .then(r => r.json().then(d => ({ ok: r.ok, d })))
@@ -112,11 +122,7 @@ export default function Reports() {
     if (!applied) return;
     setExportError('');
     try {
-      const params = new URLSearchParams({ date_from: applied.dateFrom, date_to: applied.dateTo });
-      if (applied.entryType) params.set('entry_type', applied.entryType);
-      if (applied.therapistName) params.set('therapist_name', applied.therapistName);
-      if (applied.patientId) params.set('patient_id', applied.patientId);
-      if (applied.paymentMethod) params.set('payment_method', applied.paymentMethod);
+      const params = buildReportQueryParams(applied);
       await downloadCsvExport(`${API_URL}/reports/export?${params.toString()}`, 'reports_export.csv');
     } catch (e) { setExportError(e.message); }
   };
@@ -145,6 +151,8 @@ export default function Reports() {
             <option value="">All</option>
             <option value="income">Income</option>
             <option value="expense">Expense</option>
+            <option value="sale">Sale</option>
+            <option value="income_expense">Income/Expense</option>
           </select>
         </div>
 
@@ -266,7 +274,14 @@ export default function Reports() {
                     <tr key={r.id}>
                       <td style={{ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{displayDate(r.entry_date)}</td>
                       <td><span className={`badge badge-${r.entry_type}`}>{r.entry_type}</span></td>
-                      <td style={{ color: 'var(--slate)', fontSize: 13 }}>{r.visit_id ? '—' : (r.category || '—')}</td>
+                      <td style={{ color: 'var(--slate)', fontSize: 13 }}>
+                        {r.visit_id ? '—' : (
+                          <>
+                            {r.category || '—'}
+                            {SALE_CATEGORIES.includes(r.category) && <span className="badge badge-sale" style={{ marginLeft: 6 }}>Sale</span>}
+                          </>
+                        )}
+                      </td>
                       <td style={{ fontSize: 13 }} title={r.session_notes || ''}>{r.visit_id ? truncateNote(r.session_notes) : '—'}</td>
                       <td style={{ fontSize: 13 }}>{r.description || '—'}</td>
                       <td style={{ fontSize: 12.5, color: 'var(--slate-light)' }}>{r.first_name ? `${r.first_name} ${r.last_name}` : '—'}</td>

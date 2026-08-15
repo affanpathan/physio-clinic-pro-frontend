@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 
-export default function LandingPage({ onLogin, notice = '' }) {
+export default function LandingPage({ onLogin, notice = '', navigate }) {
   const [form, setForm] = useState({ user_id: '', user_pass: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -44,6 +44,16 @@ export default function LandingPage({ onLogin, notice = '' }) {
             <li>Clinic master and user administration</li>
             <li>Fast access to real-time clinic data</li>
           </ul>
+
+          {navigate && (
+            <button
+              type="button"
+              onClick={() => navigate('pricing')}
+              style={pricingLinkStyle}
+            >
+              View Pricing &amp; Features &rarr;
+            </button>
+          )}
         </div>
 
         <div style={rightPanelStyle}>
@@ -181,6 +191,20 @@ const errorStyle = {
   padding: '10px 12px',
   borderRadius: 8,
   border: '1px solid #fecaca',
+};
+
+//inline-block
+const pricingLinkStyle = {
+  display: 'none',
+  textAlign: 'left',
+  marginTop: 20,
+  border: 'none',
+  background: 'transparent',
+  color: '#2563eb',
+  fontWeight: 600,
+  cursor: 'pointer',
+  fontSize: 14,
+  padding: 0,
 };
 
 // Amber, not red — an expired session is expected housekeeping, not a failure the user caused.
