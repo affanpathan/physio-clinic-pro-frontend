@@ -20,8 +20,9 @@ const EMPTY_ENTRY = {
   amount: '',
   payment_method: 'cash',
   reference_number: '',
-  product_id: '',
 };
+
+const EMPTY_PRODUCT_LINE = { product_id: '', description: '', amount: '' };
 
 const displayDate = (d) => {
   if (!d) return '—';
@@ -78,6 +79,7 @@ export default function DailyLedger() {
   const [patients, setPatients] = useState([]);
   const [patSearch, setPatSearch] = useState('');
   const [products, setProducts] = useState([]);
+  const [productLines, setProductLines] = useState([{ ...EMPTY_PRODUCT_LINE }]);
 
   const loadEntries = useCallback(() => {
     setLoading(true);
@@ -129,16 +131,23 @@ export default function DailyLedger() {
     } catch (err) { /* ignore */ }
   };
 
-  const handleProductSelect = (productIdStr) => {
+  const updateProductLine = (idx, field, value) => {
+    setProductLines(lines => lines.map((l, i) => i === idx ? { ...l, [field]: value } : l));
+  };
+
+  const handleProductLineSelect = (idx, productIdStr) => {
     const productId = productIdStr ? Number(productIdStr) : '';
     const prod = productId ? products.find(p => p.id === productId) : null;
-    setForm(f => ({
-      ...f,
+    setProductLines(lines => lines.map((l, i) => i === idx ? {
+      ...l,
       product_id: productId,
-      description: prod ? (prod.description || '') : f.description,
-      amount: prod && prod.price ? Number(prod.price) : f.amount,
-    }));
+      description: prod ? (prod.description || '') : l.description,
+      amount: prod && prod.price ? Number(prod.price) : l.amount,
+    } : l));
   };
+
+  const addProductLine = () => setProductLines(lines => [...lines, { ...EMPTY_PRODUCT_LINE }]);
+  const removeProductLine = (idx) => setProductLines(lines => lines.length > 1 ? lines.filter((_, i) => i !== idx) : lines);
 
   const { highlightedIndex: patHighlight, setHighlightedIndex: setPatHighlight, onKeyDown: onPatSearchKeyDown } =
     useKeyboardListNav(patients, selectPatient, () => setPatients([]));
@@ -161,14 +170,38 @@ export default function DailyLedger() {
   };
 
   const handleSave = async () => {
+    if (form.category === 'Product Sale') {
+      const validLines = productLines
+        .map(l => ({ ...l, amount: Number(l.amount) || 0 }))
+        .filter(l => l.amount > 0 && (l.product_id || l.description.trim()));
+      if (!validLines.length) { setError('Add at least one product with a description and amount.'); return; }
+      setSaving(true); setError('');
+      try {
+        for (const line of validLines) {
+          const payload = {
+            entry_date: form.entry_date,
+            entry_type: 'income',
+            category: 'Product Sale',
+            description: line.description || '',
+            amount: line.amount,
+            payment_method: form.payment_method,
+            reference_number: form.reference_number,
+            patient_id: form.patient_id ? form.patient_id : null,
+            product_id: line.product_id ? line.product_id : null,
+          };
+          const res = await fetch(`${API_URL}/ledger`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+          if (!res.ok) { const e = await res.json(); throw new Error(e.error); }
+        }
+        setShowModal(false); loadEntries();
+      } catch (e) { setError(e.message); }
+      setSaving(false);
+      return;
+    }
+
     if (!form.description || !form.amount || !form.category) { setError('Description, category, and amount are required.'); return; }
     setSaving(true); setError('');
     try {
-      const payload = {
-        ...form,
-        patient_id: form.patient_id ? form.patient_id : null,
-        product_id: form.product_id ? form.product_id : null,
-      };
+      const payload = { ...form, patient_id: form.patient_id ? form.patient_id : null };
       const res = await fetch(`${API_URL}/ledger`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       if (!res.ok) { const e = await res.json(); throw new Error(e.error); }
       setShowModal(false); loadEntries();
@@ -183,7 +216,8 @@ export default function DailyLedger() {
   };
 
   const openAdd = (type = 'expense') => {
-    setForm({ ...EMPTY_ENTRY, entry_date: date, entry_type: type, category: '', patient_id: '', product_id: '' });
+    setForm({ ...EMPTY_ENTRY, entry_date: date, entry_type: type, category: '', patient_id: '' });
+    setProductLines([{ ...EMPTY_PRODUCT_LINE }]);
     setError('');
     setPatSearch(''); setPatients([]);
     setShowModal(true);
@@ -322,7 +356,7 @@ export default function DailyLedger() {
                     <td style={{ color: 'var(--slate)', fontSize: 13 }}>
                       {e.visit_id ? '—' : (
                         <>
-                          {e.category}
+                          {e.category === 'Product Sale' && e.product_name ? e.product_name : e.category}
                           {SALE_CATEGORIES.includes(e.category) && <span className="badge badge-sale" style={{ marginLeft: 6 }}>Sale</span>}
                         </>
                       )}
@@ -408,10 +442,10 @@ export default function DailyLedger() {
                   <select className="form-select" value={form.category} onChange={e => {
                     const newCategory = e.target.value;
                     const enteringSale = newCategory === 'Product Sale' && form.category !== 'Product Sale';
+                    if (enteringSale) setProductLines([{ ...EMPTY_PRODUCT_LINE }]);
                     setForm(f => ({
                       ...f,
                       category: newCategory,
-                      product_id: newCategory === 'Product Sale' ? f.product_id : '',
                       amount: enteringSale ? '' : f.amount,
                     }));
                   }}>
@@ -420,18 +454,33 @@ export default function DailyLedger() {
                   </select>
                 </div>
                 {form.entry_type === 'income' && form.category === 'Product Sale' && (
-                  <div className="form-group">
-                    <label className="form-label">Product</label>
-                    <select className="form-select" value={form.product_id || ''} onChange={e => handleProductSelect(e.target.value)}>
-                      <option value="">Select product (optional)</option>
-                      {products.map(p => <option key={p.id} value={p.id}>{p.product_name}</option>)}
-                    </select>
+                  <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                    <label className="form-label">Products *</label>
+                    {productLines.map((line, idx) => (
+                      <div key={idx} style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center' }}>
+                        <select className="form-select" style={{ flex: 1.2 }} value={line.product_id || ''} onChange={e => handleProductLineSelect(idx, e.target.value)}>
+                          <option value="">Select product</option>
+                          {products.map(p => <option key={p.id} value={p.id}>{p.product_name}</option>)}
+                        </select>
+                        <input className="form-input" style={{ flex: 2 }} placeholder="Description" value={line.description} onChange={e => updateProductLine(idx, 'description', e.target.value)} />
+                        <input type="number" step="0.01" className="form-input" style={{ width: 120 }} placeholder={`Amount (${symbol})`} value={line.amount} onChange={e => updateProductLine(idx, 'amount', e.target.value)} />
+                        <button type="button" className="btn btn-ghost btn-sm btn-icon" onClick={() => removeProductLine(idx)} disabled={productLines.length === 1} title="Remove">
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ))}
+                    <button type="button" className="btn btn-secondary btn-sm" onClick={addProductLine}><Plus size={14} />Add Product</button>
+                    <div style={{ marginTop: 8, fontSize: 13, color: 'var(--slate-light)' }}>
+                      Total: <strong>{fmt(productLines.reduce((s, l) => s + (Number(l.amount) || 0), 0))}</strong>
+                    </div>
                   </div>
                 )}
-                <div className="form-group">
-                  <label className="form-label">Amount ({symbol}) *</label>
-                  <input type="number" step="0.01" className="form-input" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} />
-                </div>
+                {form.category !== 'Product Sale' && (
+                  <div className="form-group">
+                    <label className="form-label">Amount ({symbol}) *</label>
+                    <input type="number" step="0.01" className="form-input" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} />
+                  </div>
+                )}
                 <div className="form-group">
                   <label className="form-label">Payment Method</label>
                   <select className="form-select" value={form.payment_method} onChange={e => setForm({ ...form, payment_method: e.target.value })}>
@@ -444,10 +493,12 @@ export default function DailyLedger() {
                   <input className="form-input" placeholder="Optional" value={form.reference_number} onChange={e => setForm({ ...form, reference_number: e.target.value })} />
                 </div>
               </div>
-              <div className="form-group">
-                <label className="form-label">Description *</label>
-                <textarea className="form-textarea" style={{ minHeight: 70 }} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
-              </div>
+              {form.category !== 'Product Sale' && (
+                <div className="form-group">
+                  <label className="form-label">Description *</label>
+                  <textarea className="form-textarea" style={{ minHeight: 70 }} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
+                </div>
+              )}
             </div>
             <div className="modal-footer" style={{ alignItems: 'center' }}>
               <div style={{ marginRight: 12 }}>
@@ -485,7 +536,7 @@ export default function DailyLedger() {
                 </div>
                 <div>
                   <strong>Category</strong>
-                  <div style={{ marginTop: 6 }}>{detailEntry.visit_id ? '—' : detailEntry.category}</div>
+                  <div style={{ marginTop: 6 }}>{detailEntry.visit_id ? '—' : (detailEntry.category === 'Product Sale' && detailEntry.product_name ? detailEntry.product_name : detailEntry.category)}</div>
                 </div>
                 <div style={{ gridColumn: '1 / -1' }}>
                   <strong>Description</strong>

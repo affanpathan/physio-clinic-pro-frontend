@@ -286,7 +286,7 @@ export default function Reports() {
                   <tr>
                     <th>Date</th>
                     <th>Type</th>
-                    <th>Category</th>
+                    <th>Category / Product</th>
                     <th>Note</th>
                     <th>Description</th>
                     <th>Patient</th>
@@ -303,7 +303,7 @@ export default function Reports() {
                       <td style={{ color: 'var(--slate)', fontSize: 13 }}>
                         {r.visit_id ? '—' : (
                           <>
-                            {r.category || '—'}
+                            {(r.category === 'Product Sale' && r.product_name ? r.product_name : r.category) || '—'}
                             {SALE_CATEGORIES.includes(r.category) && <span className="badge badge-sale" style={{ marginLeft: 6 }}>Sale</span>}
                           </>
                         )}

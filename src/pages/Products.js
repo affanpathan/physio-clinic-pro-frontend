@@ -27,6 +27,7 @@ export default function Products({ clinicId }) {
   const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [messageIsError, setMessageIsError] = useState(false);
 
   const fetchItems = async () => {
     setLoading(true);
@@ -88,10 +89,12 @@ export default function Products({ clinicId }) {
       const data = await parseJsonResponse(res);
       if (!res.ok) throw new Error(data?.error || 'Request failed');
       setMessage(editingId ? 'Product updated successfully' : 'Product created successfully');
+      setMessageIsError(false);
       resetForm();
       fetchItems();
     } catch (err) {
       setMessage(err.message);
+      setMessageIsError(true);
     }
   };
 
@@ -112,9 +115,11 @@ export default function Products({ clinicId }) {
       const data = await parseJsonResponse(res);
       if (!res.ok) throw new Error(data?.error || 'Delete failed');
       setMessage('Product deleted successfully');
+      setMessageIsError(false);
       fetchItems();
     } catch (err) {
       setMessage(err.message);
+      setMessageIsError(true);
     }
   };
 
@@ -123,7 +128,7 @@ export default function Products({ clinicId }) {
       <h2>Products</h2>
       <p style={{ color: '#666' }}>Manage the product catalog used when recording Product Sale income.</p>
 
-      {message && <div style={{ marginBottom: 16, color: '#0b6e4f' }}>{message}</div>}
+      {message && <div style={{ marginBottom: 16, color: messageIsError ? '#be123c' : '#0b6e4f' }}>{message}</div>}
 
       <form onSubmit={handleSubmit} style={{ background: '#fff', padding: 16, borderRadius: 8, marginBottom: 20 }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
