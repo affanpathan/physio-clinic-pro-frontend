@@ -293,7 +293,8 @@ export default function App() {
             {sidebarOpen && (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
                 <span className="brand-name">PhysioClinic<em>Pro</em></span>
-                <span style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>{clinicName || 'Clinic Name'}</span>
+                <span className="brand-divider" />
+                <span className="brand-clinic-name">{clinicName || 'Clinic Name'}</span>
               </div>
             )}
           </div>
