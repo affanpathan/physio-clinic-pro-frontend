@@ -77,6 +77,10 @@ export default function Reports() {
     setPatientId(''); setPatSearch(''); setPatResults([]);
   };
 
+  const selectAllPatients = () => {
+    setPatientId('all'); setPatSearch('All Patients'); setPatResults([]);
+  };
+
   const { highlightedIndex: patHighlight, setHighlightedIndex: setPatHighlight, onKeyDown: onPatSearchKeyDown } =
     useKeyboardListNav(patResults, selectPatient, () => setPatResults([]));
 
@@ -175,6 +179,13 @@ export default function Reports() {
             onChange={e => { setPatSearch(e.target.value); if (patientId) setPatientId(''); }}
             onKeyDown={onPatSearchKeyDown}
           />
+          <button
+            className={`btn btn-sm ${patientId === 'all' ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={selectAllPatients}
+            title="Show only records linked to a patient"
+          >
+            All
+          </button>
           {patientId && (
             <button className="btn btn-ghost btn-sm btn-icon" onClick={clearPatient} title="Clear patient">
               <X size={14} />
