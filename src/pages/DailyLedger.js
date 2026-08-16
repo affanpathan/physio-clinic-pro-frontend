@@ -20,6 +20,7 @@ const EMPTY_ENTRY = {
   amount: '',
   payment_method: 'cash',
   reference_number: '',
+  product_id: '',
 };
 
 const displayDate = (d) => {
@@ -76,6 +77,7 @@ export default function DailyLedger() {
   const [detailEntry, setDetailEntry] = useState(null);
   const [patients, setPatients] = useState([]);
   const [patSearch, setPatSearch] = useState('');
+  const [products, setProducts] = useState([]);
 
   const loadEntries = useCallback(() => {
     setLoading(true);
@@ -106,10 +108,18 @@ export default function DailyLedger() {
     }
   }, [patSearch]);
 
+  useEffect(() => {
+    fetch(`${API_URL}/products?active=true`)
+      .then(r => r.json())
+      .then(d => setProducts(Array.isArray(d) ? d : []))
+      .catch(() => setProducts([]));
+  }, []);
+
   const selectPatient = async (p) => {
     setForm(f => ({ ...f, patient_id: p.id }));
     setPatSearch(`${p.first_name} ${p.last_name}`);
     setPatients([]);
+    if (form.category === 'Product Sale') return; // patient is record-only for a product sale, not a fee to reconcile
     try {
       const res = await fetch(`${API_URL}/patient-ledger/${p.id}`);
       if (!res.ok) return;
@@ -117,6 +127,17 @@ export default function DailyLedger() {
       const bal = d.summary?.balance_due ?? 0;
       setForm(f => ({ ...f, amount: Number(bal) }));
     } catch (err) { /* ignore */ }
+  };
+
+  const handleProductSelect = (productIdStr) => {
+    const productId = productIdStr ? Number(productIdStr) : '';
+    const prod = productId ? products.find(p => p.id === productId) : null;
+    setForm(f => ({
+      ...f,
+      product_id: productId,
+      description: prod ? (prod.description || '') : f.description,
+      amount: prod && prod.price ? Number(prod.price) : f.amount,
+    }));
   };
 
   const { highlightedIndex: patHighlight, setHighlightedIndex: setPatHighlight, onKeyDown: onPatSearchKeyDown } =
@@ -146,6 +167,7 @@ export default function DailyLedger() {
       const payload = {
         ...form,
         patient_id: form.patient_id ? form.patient_id : null,
+        product_id: form.product_id ? form.product_id : null,
       };
       const res = await fetch(`${API_URL}/ledger`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       if (!res.ok) { const e = await res.json(); throw new Error(e.error); }
@@ -161,7 +183,7 @@ export default function DailyLedger() {
   };
 
   const openAdd = (type = 'expense') => {
-    setForm({ ...EMPTY_ENTRY, entry_date: date, entry_type: type, category: '', patient_id: '' });
+    setForm({ ...EMPTY_ENTRY, entry_date: date, entry_type: type, category: '', patient_id: '', product_id: '' });
     setError('');
     setPatSearch(''); setPatients([]);
     setShowModal(true);
@@ -383,11 +405,29 @@ export default function DailyLedger() {
                 </div>
                 <div className="form-group">
                   <label className="form-label">Category *</label>
-                  <select className="form-select" value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}>
+                  <select className="form-select" value={form.category} onChange={e => {
+                    const newCategory = e.target.value;
+                    const enteringSale = newCategory === 'Product Sale' && form.category !== 'Product Sale';
+                    setForm(f => ({
+                      ...f,
+                      category: newCategory,
+                      product_id: newCategory === 'Product Sale' ? f.product_id : '',
+                      amount: enteringSale ? '' : f.amount,
+                    }));
+                  }}>
                     <option value="">Select category</option>
                     {(form.entry_type === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES).map(c => <option key={c}>{c}</option>)}
                   </select>
                 </div>
+                {form.entry_type === 'income' && form.category === 'Product Sale' && (
+                  <div className="form-group">
+                    <label className="form-label">Product</label>
+                    <select className="form-select" value={form.product_id || ''} onChange={e => handleProductSelect(e.target.value)}>
+                      <option value="">Select product (optional)</option>
+                      {products.map(p => <option key={p.id} value={p.id}>{p.product_name}</option>)}
+                    </select>
+                  </div>
+                )}
                 <div className="form-group">
                   <label className="form-label">Amount ({symbol}) *</label>
                   <input type="number" step="0.01" className="form-input" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} />

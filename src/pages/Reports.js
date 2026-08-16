@@ -15,7 +15,7 @@ const displayDate = (d) => {
   return '—';
 };
 
-function buildReportQueryParams({ dateFrom, dateTo, entryType, therapistName, patientId, paymentMethod }) {
+function buildReportQueryParams({ dateFrom, dateTo, entryType, therapistName, patientId, paymentMethod, productId }) {
   const params = new URLSearchParams({ date_from: dateFrom, date_to: dateTo });
   if (entryType === 'sale') { params.set('entry_type', 'income'); params.set('category', SALE_CATEGORIES.join(',')); }
   else if (entryType === 'income_expense') { params.set('exclude_category', SALE_CATEGORIES.join(',')); }
@@ -23,6 +23,7 @@ function buildReportQueryParams({ dateFrom, dateTo, entryType, therapistName, pa
   if (therapistName) params.set('therapist_name', therapistName);
   if (patientId) params.set('patient_id', patientId);
   if (paymentMethod) params.set('payment_method', paymentMethod);
+  if (productId) params.set('product_id', productId);
   return params;
 }
 
@@ -40,6 +41,8 @@ export default function Reports() {
   const [patResults, setPatResults] = useState([]);
 
   const [therapists, setTherapists] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [productId, setProductId] = useState('');
 
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
@@ -56,6 +59,10 @@ export default function Reports() {
 
   useEffect(() => {
     fetch(`${API_URL}/therapists`).then(r => r.json()).then(d => setTherapists(Array.isArray(d) ? d : [])).catch(() => setTherapists([]));
+  }, []);
+
+  useEffect(() => {
+    fetch(`${API_URL}/products?active=true`).then(r => r.json()).then(d => setProducts(Array.isArray(d) ? d : [])).catch(() => setProducts([]));
   }, []);
 
   useEffect(() => {
@@ -114,7 +121,7 @@ export default function Reports() {
     setTouched(true);
     if (!dateFrom || !dateTo) return;
     setPage(1);
-    setApplied({ dateFrom, dateTo, entryType, therapistName, patientId, paymentMethod });
+    setApplied({ dateFrom, dateTo, entryType, therapistName, patientId, paymentMethod, productId });
   };
 
   const changePageSize = (e) => {
@@ -165,6 +172,14 @@ export default function Reports() {
           <select className="form-select" style={{ width: 160 }} value={therapistName} onChange={e => setTherapistName(e.target.value)}>
             <option value="">All</option>
             {therapists.map(t => <option key={t.id} value={t.therapist_name}>{t.therapist_name}</option>)}
+          </select>
+        </div>
+
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <label style={{ fontSize: 13, color: 'var(--slate-light)', margin: 0 }}>Product</label>
+          <select className="form-select" style={{ width: 160 }} value={productId} onChange={e => setProductId(e.target.value)}>
+            <option value="">All</option>
+            {products.map(p => <option key={p.id} value={p.id}>{p.product_name}</option>)}
           </select>
         </div>
 
