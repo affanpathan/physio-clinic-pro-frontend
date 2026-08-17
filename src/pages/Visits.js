@@ -12,7 +12,7 @@ const THERAPY_TYPES = ['Bio Lite','Premium Plus','Manual Therapy', 'Exercise The
 const EMPTY_VISIT = {
   patient_id: '', therapy_plan_id: '', visit_date: new Date().toISOString().split('T')[0],
   visit_time: '09:00', therapist_name: '', therapies: [{ therapy_type: '', duration_minutes: 15 }],
-  fee_charged: '', amount_paid: '', payment_method: 'cash', payment_status: 'paid',
+  fee_charged: '', amount_paid: '', payment_method: 'cash', bank_id: '', payment_status: 'paid',
   session_notes: '', chief_complaint: '', treatment_given: '',
 };
 
@@ -23,6 +23,7 @@ export default function Visits() {
   const [visits, setVisits] = useState([]);
   const [patients, setPatients] = useState([]);
   const [therapists, setTherapists] = useState([]);
+  const [banks, setBanks] = useState([]);
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -72,6 +73,15 @@ export default function Visits() {
         setTherapists(Array.isArray(data) ? data : []);
       })
       .catch(() => setTherapists([]));
+  }, []);
+
+  useEffect(() => {
+    fetch(`${API_URL}/banks?active=true`)
+      .then(async (r) => {
+        const data = await r.json().catch(() => []);
+        setBanks(Array.isArray(data) ? data : []);
+      })
+      .catch(() => setBanks([]));
   }, []);
 
   const shiftDate = (days) => {
@@ -439,6 +449,15 @@ export default function Visits() {
                       <option value="online">Online / UPI</option>
                     </select>
                   </div>
+                  {form.payment_method === 'online' && (
+                    <div className="form-group">
+                      <label className="form-label">Bank</label>
+                      <select className="form-select" value={form.bank_id || ''} onChange={e => setForm({ ...form, bank_id: e.target.value })}>
+                        <option value="">Select bank</option>
+                        {banks.map(b => <option key={b.id} value={b.id}>{b.bank_name}</option>)}
+                      </select>
+                    </div>
+                  )}
                 </div>
                 {form.patient_id && (advanceCredit > 0 || outstandingDue > 0) && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 10, fontSize: 13 }}>

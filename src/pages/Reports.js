@@ -15,7 +15,7 @@ const displayDate = (d) => {
   return '—';
 };
 
-function buildReportQueryParams({ dateFrom, dateTo, entryType, therapistName, patientId, paymentMethod, productId }) {
+function buildReportQueryParams({ dateFrom, dateTo, entryType, therapistName, patientId, paymentMethod, bankId, productId }) {
   const params = new URLSearchParams({ date_from: dateFrom, date_to: dateTo });
   if (entryType === 'sale') { params.set('entry_type', 'income'); params.set('category', SALE_CATEGORIES.join(',')); }
   else if (entryType === 'income_expense') { params.set('exclude_category', SALE_CATEGORIES.join(',')); }
@@ -23,6 +23,7 @@ function buildReportQueryParams({ dateFrom, dateTo, entryType, therapistName, pa
   if (therapistName) params.set('therapist_name', therapistName);
   if (patientId) params.set('patient_id', patientId);
   if (paymentMethod) params.set('payment_method', paymentMethod);
+  if (bankId) params.set('bank_id', bankId);
   if (productId) params.set('product_id', productId);
   return params;
 }
@@ -36,6 +37,8 @@ export default function Reports() {
   const [entryType, setEntryType] = useState('');
   const [therapistName, setTherapistName] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('');
+  const [bankId, setBankId] = useState('');
+  const [banks, setBanks] = useState([]);
   const [patientId, setPatientId] = useState('');
   const [patSearch, setPatSearch] = useState('');
   const [patResults, setPatResults] = useState([]);
@@ -63,6 +66,10 @@ export default function Reports() {
 
   useEffect(() => {
     fetch(`${API_URL}/products?active=true`).then(r => r.json()).then(d => setProducts(Array.isArray(d) ? d : [])).catch(() => setProducts([]));
+  }, []);
+
+  useEffect(() => {
+    fetch(`${API_URL}/banks?active=true`).then(r => r.json()).then(d => setBanks(Array.isArray(d) ? d : [])).catch(() => setBanks([]));
   }, []);
 
   useEffect(() => {
@@ -121,7 +128,7 @@ export default function Reports() {
     setTouched(true);
     if (!dateFrom || !dateTo) return;
     setPage(1);
-    setApplied({ dateFrom, dateTo, entryType, therapistName, patientId, paymentMethod, productId });
+    setApplied({ dateFrom, dateTo, entryType, therapistName, patientId, paymentMethod, bankId, productId });
   };
 
   const changePageSize = (e) => {
@@ -231,6 +238,14 @@ export default function Reports() {
           </select>
         </div>
 
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <label style={{ fontSize: 13, color: 'var(--slate-light)', margin: 0 }}>Bank</label>
+          <select className="form-select" style={{ width: 160 }} value={bankId} onChange={e => setBankId(e.target.value)}>
+            <option value="">All</option>
+            {banks.map(b => <option key={b.id} value={b.id}>{b.bank_name}</option>)}
+          </select>
+        </div>
+
         <div style={{ flex: 1 }} />
         <button className="btn btn-primary" onClick={handleSearch}>Search</button>
         <button className="btn btn-secondary" onClick={handleExport} disabled={!applied} title={!applied ? 'Run a search first' : 'Export current results'}>
@@ -271,6 +286,37 @@ export default function Reports() {
         </div>
       )}
 
+      {summary?.byBank?.length > 0 && (
+        <div className="card" style={{ marginTop: 12 }}>
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Bank</th>
+                  <th>Income</th>
+                  <th>Expense</th>
+                  <th>Net</th>
+                </tr>
+              </thead>
+              <tbody>
+                {summary.byBank.map(b => (
+                  <tr key={b.bankId}>
+                    <td>{b.bankName}</td>
+                    <td><span className="amount-income">{fmt(b.income)}</span></td>
+                    <td><span className="amount-expense">{fmt(b.expense)}</span></td>
+                    <td>
+                      <span style={{ color: (b.income - b.expense) >= 0 ? 'var(--green)' : 'var(--coral)' }}>
+                        {fmt(b.income - b.expense)}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       <div className="card" style={{ marginTop: 12 }}>
         {!applied ? (
           <div className="empty-state"><p>Select a From Date and To Date, then click Search to generate a report.</p></div>
@@ -292,6 +338,7 @@ export default function Reports() {
                     <th>Patient</th>
                     <th>Therapist</th>
                     <th>Payment</th>
+                    <th>Bank</th>
                     <th>Amount</th>
                   </tr>
                 </thead>
@@ -313,6 +360,7 @@ export default function Reports() {
                       <td style={{ fontSize: 12.5, color: 'var(--slate-light)' }}>{r.first_name ? `${r.first_name} ${r.last_name}` : '—'}</td>
                       <td style={{ fontSize: 12.5, color: 'var(--slate-light)' }}>{r.visit_id ? (r.therapist_name || '—') : '—'}</td>
                       <td><span className={`badge badge-${r.payment_method}`}>{r.payment_method}</span></td>
+                      <td style={{ fontSize: 12.5, color: 'var(--slate-light)' }}>{r.bank_name || '—'}</td>
                       <td>
                         <span className={r.entry_type === 'income' ? 'amount-income' : 'amount-expense'}>
                           {r.entry_type === 'income' ? '+' : '-'}{fmt(r.amount)}

@@ -19,6 +19,7 @@ const EMPTY_ENTRY = {
   description: '',
   amount: '',
   payment_method: 'cash',
+  bank_id: '',
   reference_number: '',
 };
 
@@ -80,6 +81,7 @@ export default function DailyLedger() {
   const [patSearch, setPatSearch] = useState('');
   const [products, setProducts] = useState([]);
   const [productLines, setProductLines] = useState([{ ...EMPTY_PRODUCT_LINE }]);
+  const [banks, setBanks] = useState([]);
 
   const loadEntries = useCallback(() => {
     setLoading(true);
@@ -115,6 +117,13 @@ export default function DailyLedger() {
       .then(r => r.json())
       .then(d => setProducts(Array.isArray(d) ? d : []))
       .catch(() => setProducts([]));
+  }, []);
+
+  useEffect(() => {
+    fetch(`${API_URL}/banks?active=true`)
+      .then(r => r.json())
+      .then(d => setBanks(Array.isArray(d) ? d : []))
+      .catch(() => setBanks([]));
   }, []);
 
   const selectPatient = async (p) => {
@@ -186,6 +195,7 @@ export default function DailyLedger() {
             amount: line.amount,
             amount_paid: line.amount_paid || 0,
             payment_method: form.payment_method,
+            bank_id: form.bank_id,
             reference_number: form.reference_number,
             patient_id: form.patient_id ? form.patient_id : null,
             product_id: line.product_id ? line.product_id : null,
@@ -492,6 +502,15 @@ export default function DailyLedger() {
                     <option value="online">Online / UPI</option>
                   </select>
                 </div>
+                {form.payment_method === 'online' && (
+                  <div className="form-group">
+                    <label className="form-label">Bank</label>
+                    <select className="form-select" value={form.bank_id || ''} onChange={e => setForm({ ...form, bank_id: e.target.value })}>
+                      <option value="">Select bank</option>
+                      {banks.map(b => <option key={b.id} value={b.id}>{b.bank_name}</option>)}
+                    </select>
+                  </div>
+                )}
                 <div className="form-group">
                   <label className="form-label">Reference / UPI ID</label>
                   <input className="form-input" placeholder="Optional" value={form.reference_number} onChange={e => setForm({ ...form, reference_number: e.target.value })} />
@@ -566,6 +585,12 @@ export default function DailyLedger() {
                   <strong>Payment Method</strong>
                   <div style={{ marginTop: 6 }}>{detailEntry.payment_method}</div>
                 </div>
+                {detailEntry.payment_method === 'online' && (
+                  <div>
+                    <strong>Bank</strong>
+                    <div style={{ marginTop: 6 }}>{detailEntry.bank_name || '—'}</div>
+                  </div>
+                )}
                 <div>
                   <strong>Reference</strong>
                   <div style={{ marginTop: 6 }}>{detailEntry.reference_number || '—'}</div>

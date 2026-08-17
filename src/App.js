@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Activity, Users, Calendar, BookOpen, BarChart2, Menu, X, Stethoscope, CreditCard, Clock, LogOut, FileBarChart, KeyRound, Package } from 'lucide-react';
+import { Activity, Users, Calendar, BookOpen, BarChart2, Menu, X, Stethoscope, CreditCard, Clock, LogOut, FileBarChart, KeyRound, Package, Landmark } from 'lucide-react';
 import Dashboard from './pages/Dashboard';
 import Patients from './pages/Patients';
 import Visits from './pages/Visits';
@@ -11,6 +11,7 @@ import ClinicMaster from './pages/ClinicMaster';
 import ClinicUsers from './pages/ClinicUsers';
 import Therapists from './pages/Therapists';
 import Products from './pages/Products';
+import Banks from './pages/Banks';
 import Reports from './pages/Reports';
 import LandingPage from './pages/LandingPage';
 import Pricing from './pages/Pricing';
@@ -33,6 +34,7 @@ const NAV = [
   { id: 'daily-ledger', label: 'Daily Ledger', icon: BookOpen },
   { id: 'therapists', label: 'Therapists', icon: Stethoscope },
   { id: 'products', label: 'Products', icon: Package },
+  { id: 'banks', label: 'Banks', icon: Landmark },
   { id: 'patient-ledger', label: 'Patient Ledger', icon: Activity },
   { id: 'patient-dues', label: 'Patient Dues', icon: CreditCard },
   { id: 'reports', label: 'Reports', icon: FileBarChart },
@@ -351,6 +353,7 @@ export default function App() {
           {page === 'clinic-users' && adminAuthorized && <ClinicUsers />}
           {page === 'therapists' && <Therapists clinicId={clinicId} />}
           {page === 'products' && <Products clinicId={clinicId} />}
+          {page === 'banks' && <Banks clinicId={clinicId} />}
           {page === 'reports' && <Reports />}
           {page === 'change-password' && <ChangePassword onPasswordChanged={handleLogout} />}
         </div>
