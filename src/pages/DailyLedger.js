@@ -351,6 +351,7 @@ export default function DailyLedger() {
                   <th>Note</th>
                   <th>Therapy</th>
                   <th>Payment</th>
+                  <th>Bank</th>
                   <th>Patient</th>
                   <th>Fee Charged</th>
                   <th>Amount</th>
@@ -383,6 +384,7 @@ export default function DailyLedger() {
                         : '—'}
                     </td>
                     <td><span className={`badge badge-${e.payment_method}`}>{e.payment_method}</span></td>
+                    <td style={{ fontSize: 12.5, color: 'var(--slate-light)' }}>{e.bank_name || '—'}</td>
                     <td style={{ fontSize: 12.5, color: 'var(--slate-light)' }}>
                       {e.first_name ? `${e.first_name} ${e.last_name}` : '—'}
                     </td>

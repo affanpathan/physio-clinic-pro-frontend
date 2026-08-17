@@ -267,6 +267,7 @@ export default function Visits() {
                   <th>Fee</th>
                   <th>Paid</th>
                   <th>Payment</th>
+                  <th>Bank</th>
                   <th>Status</th>
                   <th></th>
                 </tr>
@@ -291,6 +292,7 @@ export default function Visits() {
                     <td className="amount-expense">{fmt(v.fee_charged)}</td>
                     <td className="amount-income">{fmt(v.amount_paid)}</td>
                     <td><span className={`badge badge-${v.payment_method}`}>{v.payment_method}</span></td>
+                    <td style={{ fontSize: 12.5, color: 'var(--slate-light)' }}>{v.bank_name || '—'}</td>
                     <td><span className={`badge badge-${v.payment_status}`}>{v.payment_status}</span></td>
                     <td>
                       <button className="btn btn-ghost btn-sm btn-icon" onClick={() => openEdit(v)} title="Edit">
@@ -396,7 +398,7 @@ export default function Visits() {
                       </div>
                     );
                   })}
-                  <button type="button" className="btn btn-ghost btn-sm" onClick={addTherapyRow}>
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={addTherapyRow}>
                     <Plus size={13} /> Add Therapy
                   </button>
                 </div>
