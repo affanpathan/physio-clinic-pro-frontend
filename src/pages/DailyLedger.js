@@ -9,7 +9,7 @@ import { downloadCsvExport } from '../utils/exportCsv';
 const API_URL = process.env.REACT_APP_API_URL || '/api';
 
 const EXPENSE_CATEGORIES = ['Rent', 'Utilities', 'Salaries', 'Equipment', 'Medicines/Supplies', 'Maintenance', 'Marketing', 'Insurance', 'Miscellaneous'];
-const INCOME_CATEGORIES = ['Therapy Fee', 'Consultation', 'Package Sale', 'Product Sale', 'Other Income'];
+const INCOME_CATEGORIES = ['Therapy Fee', 'Consultation', 'Package Sale', 'Product Sale', 'Product Sale Payment', 'Other Income'];
 const SALE_CATEGORIES = ['Product Sale', 'Package Sale'];
 
 const EMPTY_ENTRY = {
@@ -22,7 +22,7 @@ const EMPTY_ENTRY = {
   reference_number: '',
 };
 
-const EMPTY_PRODUCT_LINE = { product_id: '', description: '', amount: '' };
+const EMPTY_PRODUCT_LINE = { product_id: '', description: '', amount: '', amount_paid: '' };
 
 const displayDate = (d) => {
   if (!d) return '—';
@@ -184,6 +184,7 @@ export default function DailyLedger() {
             category: 'Product Sale',
             description: line.description || '',
             amount: line.amount,
+            amount_paid: line.amount_paid || 0,
             payment_method: form.payment_method,
             reference_number: form.reference_number,
             patient_id: form.patient_id ? form.patient_id : null,
@@ -463,7 +464,8 @@ export default function DailyLedger() {
                           {products.map(p => <option key={p.id} value={p.id}>{p.product_name}</option>)}
                         </select>
                         <input className="form-input" style={{ flex: 2 }} placeholder="Description" value={line.description} onChange={e => updateProductLine(idx, 'description', e.target.value)} />
-                        <input type="number" step="0.01" className="form-input" style={{ width: 120 }} placeholder={`Amount (${symbol})`} value={line.amount} onChange={e => updateProductLine(idx, 'amount', e.target.value)} />
+                        <input type="number" step="0.01" className="form-input" style={{ width: 110 }} placeholder={`Charged (${symbol})`} value={line.amount} onChange={e => updateProductLine(idx, 'amount', e.target.value)} />
+                        <input type="number" step="0.01" className="form-input" style={{ width: 110 }} placeholder={`Paid (${symbol})`} value={line.amount_paid} onChange={e => updateProductLine(idx, 'amount_paid', e.target.value)} />
                         <button type="button" className="btn btn-ghost btn-sm btn-icon" onClick={() => removeProductLine(idx)} disabled={productLines.length === 1} title="Remove">
                           <X size={14} />
                         </button>
@@ -471,7 +473,9 @@ export default function DailyLedger() {
                     ))}
                     <button type="button" className="btn btn-secondary btn-sm" onClick={addProductLine}><Plus size={14} />Add Product</button>
                     <div style={{ marginTop: 8, fontSize: 13, color: 'var(--slate-light)' }}>
-                      Total: <strong>{fmt(productLines.reduce((s, l) => s + (Number(l.amount) || 0), 0))}</strong>
+                      Total Charged: <strong>{fmt(productLines.reduce((s, l) => s + (Number(l.amount) || 0), 0))}</strong>
+                      {' · '}Total Paid: <strong>{fmt(productLines.reduce((s, l) => s + (Number(l.amount_paid) || 0), 0))}</strong>
+                      {' · '}Total Due: <strong>{fmt(productLines.reduce((s, l) => s + (Number(l.amount) || 0) - (Number(l.amount_paid) || 0), 0))}</strong>
                     </div>
                   </div>
                 )}
