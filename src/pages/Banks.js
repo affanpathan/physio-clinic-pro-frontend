@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Download } from 'lucide-react';
 import { downloadCsvExport } from '../utils/exportCsv';
+import { useCurrency } from '../context/CurrencyContext';
 
 const API_URL = process.env.REACT_APP_API_URL || '/api';
 
@@ -20,6 +21,9 @@ const emptyForm = {
 };
 
 export default function Banks({ clinicId }) {
+  const { symbol } = useCurrency();
+  const fmt = (n) => symbol + Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
   const [items, setItems] = useState([]);
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState(null);
@@ -29,7 +33,7 @@ export default function Banks({ clinicId }) {
   const fetchItems = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/banks`);
+      const res = await fetch(`${API_URL}/banks?with_balance=true`);
       const data = await parseJsonResponse(res);
       if (!res.ok) {
         throw new Error(data?.error || 'Failed to fetch banks.');
@@ -155,6 +159,7 @@ export default function Banks({ clinicId }) {
                 <th style={thStyle}>Clinic</th>
                 <th style={thStyle}>Bank Name</th>
                 <th style={thStyle}>Active</th>
+                <th style={thStyle}>Balance</th>
                 <th style={thStyle}>Actions</th>
               </tr>
             </thead>
@@ -164,6 +169,7 @@ export default function Banks({ clinicId }) {
                   <td style={tdStyle}>{item.clinic_name || item.clinic_id}</td>
                   <td style={tdStyle}>{item.bank_name}</td>
                   <td style={tdStyle}>{item.active ? 'Yes' : 'No'}</td>
+                  <td style={tdStyle}>{fmt(item.balance)}</td>
                   <td style={tdStyle}>
                     <button onClick={() => handleEdit(item)} style={secondaryButtonStyle}>Edit</button>{' '}
                     <button onClick={() => handleDelete(item.id)} style={dangerButtonStyle}>Delete</button>

@@ -55,6 +55,7 @@ export default function Reports() {
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [summary, setSummary] = useState(null);
+  const [bankTransfers, setBankTransfers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [exportError, setExportError] = useState('');
@@ -69,7 +70,7 @@ export default function Reports() {
   }, []);
 
   useEffect(() => {
-    fetch(`${API_URL}/banks?active=true`).then(r => r.json()).then(d => setBanks(Array.isArray(d) ? d : [])).catch(() => setBanks([]));
+    fetch(`${API_URL}/banks?active=true&with_balance=true`).then(r => r.json()).then(d => setBanks(Array.isArray(d) ? d : [])).catch(() => setBanks([]));
   }, []);
 
   useEffect(() => {
@@ -123,6 +124,23 @@ export default function Reports() {
 
     return () => controller.abort();
   }, [applied, page, pageSize]);
+
+  useEffect(() => {
+    if (!applied) { setBankTransfers([]); return; }
+    const controller = new AbortController();
+    const params = new URLSearchParams({ date_from: applied.dateFrom, date_to: applied.dateTo });
+    if (applied.bankId) params.set('bank_id', applied.bankId);
+
+    fetch(`${API_URL}/bank-transfers?${params.toString()}`, { signal: controller.signal })
+      .then(r => r.json())
+      .then(d => setBankTransfers(Array.isArray(d) ? d : []))
+      .catch(e => {
+        if (e.name === 'AbortError') return;
+        setBankTransfers([]);
+      });
+
+    return () => controller.abort();
+  }, [applied]);
 
   const handleSearch = () => {
     setTouched(true);
@@ -296,6 +314,7 @@ export default function Reports() {
                   <th>Income</th>
                   <th>Expense</th>
                   <th>Net</th>
+                  <th>Current Balance</th>
                 </tr>
               </thead>
               <tbody>
@@ -309,6 +328,37 @@ export default function Reports() {
                         {fmt(b.income - b.expense)}
                       </span>
                     </td>
+                    <td>{fmt(banks.find(bk => bk.id === b.bankId)?.balance)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {bankTransfers.length > 0 && (
+        <div className="card" style={{ marginTop: 12 }}>
+          <h3 style={{ marginTop: 0 }}>Bank Transfers</h3>
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>From Bank</th>
+                  <th>To Bank</th>
+                  <th>Amount</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                {bankTransfers.map(t => (
+                  <tr key={t.id}>
+                    <td>{displayDate(t.transfer_date)}</td>
+                    <td>{t.from_bank_name}</td>
+                    <td>{t.to_bank_name}</td>
+                    <td>{fmt(t.amount)}</td>
+                    <td>{t.description}</td>
                   </tr>
                 ))}
               </tbody>
