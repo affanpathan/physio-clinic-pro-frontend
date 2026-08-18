@@ -56,6 +56,9 @@ export default function Reports() {
   const [totalPages, setTotalPages] = useState(1);
   const [summary, setSummary] = useState(null);
   const [bankTransfers, setBankTransfers] = useState([]);
+  const [showBankTransfers, setShowBankTransfers] = useState(false);
+  const [btPage, setBtPage] = useState(1);
+  const [btPageSize, setBtPageSize] = useState(25);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [exportError, setExportError] = useState('');
@@ -131,6 +134,7 @@ export default function Reports() {
     const params = new URLSearchParams({ date_from: applied.dateFrom, date_to: applied.dateTo });
     if (applied.bankId) params.set('bank_id', applied.bankId);
 
+    setBtPage(1);
     fetch(`${API_URL}/bank-transfers?${params.toString()}`, { signal: controller.signal })
       .then(r => r.json())
       .then(d => setBankTransfers(Array.isArray(d) ? d : []))
@@ -141,6 +145,16 @@ export default function Reports() {
 
     return () => controller.abort();
   }, [applied]);
+
+  const btTotalPages = Math.max(1, Math.ceil(bankTransfers.length / btPageSize));
+  const pagedBankTransfers = bankTransfers.slice((btPage - 1) * btPageSize, btPage * btPageSize);
+  const btRangeStart = bankTransfers.length === 0 ? 0 : (btPage - 1) * btPageSize + 1;
+  const btRangeEnd = Math.min(btPage * btPageSize, bankTransfers.length);
+
+  const changeBtPageSize = (e) => {
+    setBtPageSize(Number(e.target.value));
+    setBtPage(1);
+  };
 
   const handleSearch = () => {
     setTouched(true);
@@ -339,31 +353,60 @@ export default function Reports() {
 
       {bankTransfers.length > 0 && (
         <div className="card" style={{ marginTop: 12 }}>
-          <h3 style={{ marginTop: 0 }}>Bank Transfers</h3>
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>From Bank</th>
-                  <th>To Bank</th>
-                  <th>Amount</th>
-                  <th>Description</th>
-                </tr>
-              </thead>
-              <tbody>
-                {bankTransfers.map(t => (
-                  <tr key={t.id}>
-                    <td>{displayDate(t.transfer_date)}</td>
-                    <td>{t.from_bank_name}</td>
-                    <td>{t.to_bank_name}</td>
-                    <td>{fmt(t.amount)}</td>
-                    <td>{t.description}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <h3 style={{ marginTop: 0 }}>Bank Transfers ({bankTransfers.length})</h3>
+            <button className="btn btn-secondary btn-sm" onClick={() => setShowBankTransfers(v => !v)}>
+              {showBankTransfers ? 'Hide' : 'Show'}
+            </button>
           </div>
+          {showBankTransfers && (
+            <>
+              <div className="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>From Bank</th>
+                      <th>To Bank</th>
+                      <th>Amount</th>
+                      <th>Description</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pagedBankTransfers.map(t => (
+                      <tr key={t.id}>
+                        <td>{displayDate(t.transfer_date)}</td>
+                        <td>{t.from_bank_name}</td>
+                        <td>{t.to_bank_name}</td>
+                        <td>{fmt(t.amount)}</td>
+                        <td>{t.description}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 4px 4px', flexWrap: 'wrap', gap: 10 }}>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <label style={{ fontSize: 13, color: 'var(--slate-light)', margin: 0 }}>Rows per page</label>
+                  <select className="form-select" style={{ width: 90 }} value={btPageSize} onChange={changeBtPageSize}>
+                    {PAGE_SIZES.map(size => <option key={size} value={size}>{size}</option>)}
+                  </select>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <span style={{ fontSize: 13, color: 'var(--slate-light)' }}>
+                    Showing {btRangeStart}–{btRangeEnd} of {bankTransfers.length}
+                  </span>
+                  <button className="btn btn-ghost btn-sm btn-icon" disabled={btPage <= 1} onClick={() => setBtPage(p => Math.max(1, p - 1))}>
+                    <ChevronLeft size={16} />
+                  </button>
+                  <span style={{ fontSize: 13 }}>Page {btPage} of {btTotalPages}</span>
+                  <button className="btn btn-ghost btn-sm btn-icon" disabled={btPage >= btTotalPages} onClick={() => setBtPage(p => Math.min(btTotalPages, p + 1))}>
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       )}
 
