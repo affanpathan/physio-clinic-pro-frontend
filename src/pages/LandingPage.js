@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
+import quotes from '../data/quotes';
 
 export default function LandingPage({ onLogin, notice = '', navigate }) {
   const [form, setForm] = useState({ user_id: '', user_pass: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [quote] = useState(() => quotes[Math.floor(Math.random() * quotes.length)]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -44,6 +46,23 @@ export default function LandingPage({ onLogin, notice = '', navigate }) {
             <li>Clinic master and user administration</li>
             <li>Fast access to real-time clinic data</li>
           </ul>
+
+          {quote && (
+            <blockquote style={quoteBoxStyle}>
+              <p style={quoteTextStyle}>&ldquo;{quote.text}&rdquo;</p>
+              <footer style={quoteAuthorStyle}>
+                {'— ' + quote.author}{' '}
+                <a
+                  href={quote.sourceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={quoteLinkStyle}
+                >
+                  Read more &rarr;
+                </a>
+              </footer>
+            </blockquote>
+          )}
 
           {navigate && (
             <button
@@ -191,6 +210,35 @@ const errorStyle = {
   padding: '10px 12px',
   borderRadius: 8,
   border: '1px solid #fecaca',
+};
+
+const quoteBoxStyle = {
+  marginTop: 24,
+  padding: '16px 18px',
+  background: '#fff',
+  borderLeft: '3px solid #2563eb',
+  borderRadius: 8,
+  boxShadow: '0 1px 3px rgba(15, 23, 42, 0.06)',
+};
+
+const quoteTextStyle = {
+  margin: 0,
+  color: '#334155',
+  fontSize: 15,
+  lineHeight: 1.6,
+  fontStyle: 'italic',
+};
+
+const quoteAuthorStyle = {
+  marginTop: 8,
+  fontSize: 13,
+  color: '#64748b',
+};
+
+const quoteLinkStyle = {
+  color: '#2563eb',
+  fontWeight: 600,
+  textDecoration: 'none',
 };
 
 //inline-block
