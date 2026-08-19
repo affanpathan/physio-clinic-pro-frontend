@@ -275,26 +275,26 @@ export default function Visits() {
               <tbody>
                 {visits.map(v => (
                   <tr key={v.id}>
-                    <td>
+                    <td data-label="Patient">
                       <div style={{ fontWeight: 600, color: 'var(--teal-900)', fontSize: 13.5 }}>{v.first_name} {v.last_name}</div>
                       <div style={{ fontSize: 11.5, color: 'var(--slate-light)' }}>{v.pid}</div>
                     </td>
-                    <td style={{ fontVariantNumeric: 'tabular-nums' }}>{v.visit_date?.split('T')[0]}</td>
-                    <td style={{ fontVariantNumeric: 'tabular-nums' }}>{v.visit_time?.slice(0,5) || '—'}</td>
-                    <td>
+                    <td data-label="Date" style={{ fontVariantNumeric: 'tabular-nums' }}>{v.visit_date?.split('T')[0]}</td>
+                    <td data-label="Time" style={{ fontVariantNumeric: 'tabular-nums' }}>{v.visit_time?.slice(0,5) || '—'}</td>
+                    <td data-label="Therapy">
                       {getTherapyRows(v).length
                         ? getTherapyRows(v).map((t, i) => (
                             <div key={i} style={{ fontSize: 12.5 }}>{t.therapy_type} <span style={{ color: 'var(--slate-light)' }}>({t.duration_minutes}m)</span></div>
                           ))
                         : '—'}
                     </td>
-                    <td>{v.duration_minutes} min</td>
-                    <td className="amount-expense">{fmt(v.fee_charged)}</td>
-                    <td className="amount-income">{fmt(v.amount_paid)}</td>
-                    <td><span className={`badge badge-${v.payment_method}`}>{v.payment_method}</span></td>
-                    <td style={{ fontSize: 12.5, color: 'var(--slate-light)' }}>{v.bank_name || '—'}</td>
-                    <td><span className={`badge badge-${v.payment_status}`}>{v.payment_status}</span></td>
-                    <td>
+                    <td data-label="Total Duration">{v.duration_minutes} min</td>
+                    <td data-label="Fee" className="amount-expense">{fmt(v.fee_charged)}</td>
+                    <td data-label="Paid" className="amount-income">{fmt(v.amount_paid)}</td>
+                    <td data-label="Payment"><span className={`badge badge-${v.payment_method}`}>{v.payment_method}</span></td>
+                    <td data-label="Bank" style={{ fontSize: 12.5, color: 'var(--slate-light)' }}>{v.bank_name || '—'}</td>
+                    <td data-label="Status"><span className={`badge badge-${v.payment_status}`}>{v.payment_status}</span></td>
+                    <td data-label="Actions">
                       <button className="btn btn-ghost btn-sm btn-icon" onClick={() => openEdit(v)} title="Edit">
                         <Edit2 size={13} />
                       </button>

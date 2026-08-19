@@ -222,23 +222,23 @@ export default function PatientLedger({ selectedPatient, setSelectedPatient }) {
                         const bal = Number(v.fee_charged) - Number(v.amount_paid);
                         return (
                           <tr key={v.id}>
-                            <td style={{ color: 'var(--slate-light)', fontSize: 12 }}>{i + 1}</td>
-                            <td style={{ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{displayDate(v.visit_date)}</td>
-                            <td style={{ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{displayTime(v.visit_time)}</td>
-                            <td style={{ fontSize: 12.5 }}>
+                            <td data-label="#" style={{ color: 'var(--slate-light)', fontSize: 12 }}>{i + 1}</td>
+                            <td data-label="Date" style={{ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{displayDate(v.visit_date)}</td>
+                            <td data-label="Time" style={{ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{displayTime(v.visit_time)}</td>
+                            <td data-label="Therapy Type" style={{ fontSize: 12.5 }}>
                               {getTherapyRows(v).length
                                 ? getTherapyRows(v).map((t, i) => (
                                     <div key={i}>{t.therapy_type} <span style={{ color: 'var(--slate-light)' }}>({t.duration_minutes}m)</span></div>
                                   ))
                                 : '—'}
                             </td>
-                            <td style={{ fontSize: 13, color: 'var(--slate)' }}>{v.therapist_name || '—'}</td>
-                            <td>{v.duration_minutes} min</td>
-                            <td style={{ fontVariantNumeric: 'tabular-nums' }}>{fmt(v.fee_charged)}</td>
-                            <td className="amount-income">{fmt(v.amount_paid)}</td>
-                            <td className={bal > 0 ? 'amount-expense' : 'amount-income'}>{fmt(bal)}</td>
-                            <td><span className={`badge badge-${v.payment_method}`}>{v.payment_method}</span></td>
-                            <td><span className={`badge badge-${v.payment_status}`}>{v.payment_status}</span></td>
+                            <td data-label="Therapist" style={{ fontSize: 13, color: 'var(--slate)' }}>{v.therapist_name || '—'}</td>
+                            <td data-label="Duration">{v.duration_minutes} min</td>
+                            <td data-label="Fee" style={{ fontVariantNumeric: 'tabular-nums' }}>{fmt(v.fee_charged)}</td>
+                            <td data-label="Paid" className="amount-income">{fmt(v.amount_paid)}</td>
+                            <td data-label="Balance" className={bal > 0 ? 'amount-expense' : 'amount-income'}>{fmt(bal)}</td>
+                            <td data-label="Method"><span className={`badge badge-${v.payment_method}`}>{v.payment_method}</span></td>
+                            <td data-label="Status"><span className={`badge badge-${v.payment_status}`}>{v.payment_status}</span></td>
                           </tr>
                         );
                       })}
@@ -271,14 +271,14 @@ export default function PatientLedger({ selectedPatient, setSelectedPatient }) {
                     <tbody>
                       {ledger.payments.map((p, i) => (
                         <tr key={p.id}>
-                          <td style={{ color: 'var(--slate-light)', fontSize: 12 }}>{i + 1}</td>
-                          <td style={{ fontVariantNumeric: 'tabular-nums' }}>{displayDate(p.payment_date)}</td>
-                          <td style={{ fontVariantNumeric: 'tabular-nums' }}>{displayDate(p.created_at)}</td>
-                          <td style={{ fontVariantNumeric: 'tabular-nums' }}>{displayTime(p.created_at)}</td>
-                          <td className="amount-income">{fmt(p.amount)}</td>
-                          <td><span className={`badge badge-${p.payment_method}`}>{p.payment_method}</span></td>
-                          <td style={{ fontSize: 12.5, color: 'var(--slate-light)' }}>{p.reference_number || '—'}</td>
-                          <td style={{ fontSize: 12.5, color: 'var(--slate)' }}>{p.notes || '—'}</td>
+                          <td data-label="#" style={{ color: 'var(--slate-light)', fontSize: 12 }}>{i + 1}</td>
+                          <td data-label="Payment Date" style={{ fontVariantNumeric: 'tabular-nums' }}>{displayDate(p.payment_date)}</td>
+                          <td data-label="Created Date" style={{ fontVariantNumeric: 'tabular-nums' }}>{displayDate(p.created_at)}</td>
+                          <td data-label="Time" style={{ fontVariantNumeric: 'tabular-nums' }}>{displayTime(p.created_at)}</td>
+                          <td data-label="Amount" className="amount-income">{fmt(p.amount)}</td>
+                          <td data-label="Method"><span className={`badge badge-${p.payment_method}`}>{p.payment_method}</span></td>
+                          <td data-label="Reference" style={{ fontSize: 12.5, color: 'var(--slate-light)' }}>{p.reference_number || '—'}</td>
+                          <td data-label="Notes" style={{ fontSize: 12.5, color: 'var(--slate)' }}>{p.notes || '—'}</td>
                         </tr>
                       ))}
                     </tbody>

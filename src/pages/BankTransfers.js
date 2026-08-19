@@ -193,38 +193,40 @@ export default function BankTransfers({ clinicId }) {
           <button className="btn btn-secondary" onClick={handleExport}><Download size={15} />Export</button>
         </div>
         {loading ? <div>Loading...</div> : (
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr>
-                <th style={thStyle}>Date</th>
-                <th style={thStyle}>From Bank</th>
-                <th style={thStyle}>To Bank</th>
-                <th style={thStyle}>Amount</th>
-                <th style={thStyle}>Description</th>
-                <th style={thStyle}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pagedItems.map((item) => (
-                <tr key={item.id}>
-                  <td style={tdStyle}>{displayDate(item.transfer_date)}</td>
-                  <td style={tdStyle}>{item.from_bank_name}</td>
-                  <td style={tdStyle}>{item.to_bank_name}</td>
-                  <td style={tdStyle}>{fmt(item.amount)}</td>
-                  <td style={tdStyle}>{item.description}</td>
-                  <td style={tdStyle}>
-                    <button onClick={() => handleDelete(item.id)} style={dangerButtonStyle}>Delete</button>
-                  </td>
+          <div className="table-wrap">
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr>
+                  <th style={thStyle}>Date</th>
+                  <th style={thStyle}>From Bank</th>
+                  <th style={thStyle}>To Bank</th>
+                  <th style={thStyle}>Amount</th>
+                  <th style={thStyle}>Description</th>
+                  <th style={thStyle}>Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {pagedItems.map((item) => (
+                  <tr key={item.id}>
+                    <td data-label="Date" style={tdStyle}>{displayDate(item.transfer_date)}</td>
+                    <td data-label="From Bank" style={tdStyle}>{item.from_bank_name}</td>
+                    <td data-label="To Bank" style={tdStyle}>{item.to_bank_name}</td>
+                    <td data-label="Amount" style={tdStyle}>{fmt(item.amount)}</td>
+                    <td data-label="Description" style={tdStyle}>{item.description}</td>
+                    <td data-label="Actions" style={tdStyle}>
+                      <button onClick={() => handleDelete(item.id)} style={dangerButtonStyle}>Delete</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
         {!loading && items.length > 0 && (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 4px 4px', flexWrap: 'wrap', gap: 10 }}>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <label style={{ fontSize: 13, color: '#666', margin: 0 }}>Rows per page</label>
-              <select value={pageSize} onChange={changePageSize} style={{ ...inputStyle, width: 90 }}>
+              <select value={pageSize} onChange={changePageSize} style={{ ...inputStyle, minWidth: 90 }}>
                 {PAGE_SIZES.map((size) => <option key={size} value={size}>{size}</option>)}
               </select>
             </div>

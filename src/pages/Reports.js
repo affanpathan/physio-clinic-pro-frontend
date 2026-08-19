@@ -334,15 +334,15 @@ export default function Reports() {
               <tbody>
                 {summary.byBank.map(b => (
                   <tr key={b.bankId}>
-                    <td>{b.bankName}</td>
-                    <td><span className="amount-income">{fmt(b.income)}</span></td>
-                    <td><span className="amount-expense">{fmt(b.expense)}</span></td>
-                    <td>
+                    <td data-label="Bank">{b.bankName}</td>
+                    <td data-label="Income"><span className="amount-income">{fmt(b.income)}</span></td>
+                    <td data-label="Expense"><span className="amount-expense">{fmt(b.expense)}</span></td>
+                    <td data-label="Net">
                       <span style={{ color: (b.income - b.expense) >= 0 ? 'var(--green)' : 'var(--coral)' }}>
                         {fmt(b.income - b.expense)}
                       </span>
                     </td>
-                    <td>{fmt(banks.find(bk => bk.id === b.bankId)?.balance)}</td>
+                    <td data-label="Current Balance">{fmt(banks.find(bk => bk.id === b.bankId)?.balance)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -375,11 +375,11 @@ export default function Reports() {
                   <tbody>
                     {pagedBankTransfers.map(t => (
                       <tr key={t.id}>
-                        <td>{displayDate(t.transfer_date)}</td>
-                        <td>{t.from_bank_name}</td>
-                        <td>{t.to_bank_name}</td>
-                        <td>{fmt(t.amount)}</td>
-                        <td>{t.description}</td>
+                        <td data-label="Date">{displayDate(t.transfer_date)}</td>
+                        <td data-label="From Bank">{t.from_bank_name}</td>
+                        <td data-label="To Bank">{t.to_bank_name}</td>
+                        <td data-label="Amount">{fmt(t.amount)}</td>
+                        <td data-label="Description">{t.description}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -438,9 +438,9 @@ export default function Reports() {
                 <tbody>
                   {rows.map(r => (
                     <tr key={r.id}>
-                      <td style={{ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{displayDate(r.entry_date)}</td>
-                      <td><span className={`badge badge-${r.entry_type}`}>{r.entry_type}</span></td>
-                      <td style={{ color: 'var(--slate)', fontSize: 13 }}>
+                      <td data-label="Date" style={{ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{displayDate(r.entry_date)}</td>
+                      <td data-label="Type"><span className={`badge badge-${r.entry_type}`}>{r.entry_type}</span></td>
+                      <td data-label="Category / Product" style={{ color: 'var(--slate)', fontSize: 13 }}>
                         {r.visit_id ? '—' : (
                           <>
                             {(r.category === 'Product Sale' && r.product_name ? r.product_name : r.category) || '—'}
@@ -448,13 +448,13 @@ export default function Reports() {
                           </>
                         )}
                       </td>
-                      <td style={{ fontSize: 13 }} title={r.session_notes || ''}>{r.visit_id ? truncateNote(r.session_notes) : '—'}</td>
-                      <td style={{ fontSize: 13 }}>{r.description || '—'}</td>
-                      <td style={{ fontSize: 12.5, color: 'var(--slate-light)' }}>{r.first_name ? `${r.first_name} ${r.last_name}` : '—'}</td>
-                      <td style={{ fontSize: 12.5, color: 'var(--slate-light)' }}>{r.visit_id ? (r.therapist_name || '—') : '—'}</td>
-                      <td><span className={`badge badge-${r.payment_method}`}>{r.payment_method}</span></td>
-                      <td style={{ fontSize: 12.5, color: 'var(--slate-light)' }}>{r.bank_name || '—'}</td>
-                      <td>
+                      <td data-label="Note" style={{ fontSize: 13 }} title={r.session_notes || ''}>{r.visit_id ? truncateNote(r.session_notes) : '—'}</td>
+                      <td data-label="Description" style={{ fontSize: 13 }}>{r.description || '—'}</td>
+                      <td data-label="Patient" style={{ fontSize: 12.5, color: 'var(--slate-light)' }}>{r.first_name ? `${r.first_name} ${r.last_name}` : '—'}</td>
+                      <td data-label="Therapist" style={{ fontSize: 12.5, color: 'var(--slate-light)' }}>{r.visit_id ? (r.therapist_name || '—') : '—'}</td>
+                      <td data-label="Payment"><span className={`badge badge-${r.payment_method}`}>{r.payment_method}</span></td>
+                      <td data-label="Bank" style={{ fontSize: 12.5, color: 'var(--slate-light)' }}>{r.bank_name || '—'}</td>
+                      <td data-label="Amount">
                         <span className={r.entry_type === 'income' ? 'amount-income' : 'amount-expense'}>
                           {r.entry_type === 'income' ? '+' : '-'}{fmt(r.amount)}
                         </span>

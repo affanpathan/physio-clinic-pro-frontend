@@ -58,7 +58,10 @@ export default function App() {
     if (hash === 'therapists' || searchPage === 'therapists' || effectivePath === 'therapists') return 'therapists';
     return 'landing';
   });
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    return window.innerWidth > 768;
+  });
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [loggedIn, setLoggedIn] = useState(false);
   const [clinicId, setClinicId] = useState('');
@@ -118,6 +121,9 @@ export default function App() {
       setAdminError('');
     } else if (adminToken) {
       setAdminAuthorized(true);
+    }
+    if (typeof window !== 'undefined' && window.innerWidth <= 768) {
+      setSidebarOpen(false);
     }
   };
 
@@ -292,6 +298,10 @@ export default function App() {
   return (
     <CurrencyProvider code={currencyCode} symbol={currencySymbol}>
     <div className="app-shell">
+      <div
+        className={`sidebar-scrim ${sidebarOpen ? 'visible' : ''}`}
+        onClick={() => setSidebarOpen(false)}
+      />
       <aside className={`sidebar ${sidebarOpen ? 'open' : 'collapsed'}`}>
         <div className="sidebar-header">
           <div className="brand">
@@ -342,6 +352,12 @@ export default function App() {
       </aside>
 
       <main className="main-content">
+        <div className="mobile-topbar">
+          <button className="mobile-menu-btn" onClick={() => setSidebarOpen(true)} aria-label="Open menu">
+            <Menu size={20} />
+          </button>
+          <span className="mobile-topbar-title">{clinicName || 'PhysioClinicPro'}</span>
+        </div>
         <div className="page-wrapper">
           {page === 'landing' && <LandingPage onLogin={handleLogin} />}
           {page === 'dashboard' && <Dashboard navigate={navigate} />}
@@ -362,7 +378,7 @@ export default function App() {
         </div>
         {isAdminPage && !adminAuthorized && (
           <div className="modal-overlay" style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.75)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div className="modal" style={{ width: 420, padding: 24, borderRadius: 18, background: '#ffffff', boxShadow: '0 20px 40px rgba(15, 23, 42, 0.15)' }}>
+            <div className="modal modal-sm" style={{ padding: 24 }}>
               <div style={{ marginBottom: 20 }}>
                 <h2 style={{ margin: 0, fontSize: 22 }}>Admin Verification Required</h2>
                 <p style={{ margin: '10px 0 0', color: '#475569' }}>Enter the system admin password to continue.</p>

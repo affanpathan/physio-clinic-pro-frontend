@@ -113,12 +113,12 @@ export default function PatientDues() {
         <tbody>
           {rows.map(row => (
             <tr key={row.id}>
-              <td>{row.first_name} {row.last_name}</td>
-              <td style={{ fontVariantNumeric: 'tabular-nums' }}>{row.patient_code}</td>
-              <td style={{ fontVariantNumeric: 'tabular-nums' }}>{fmt(row.total_charged)}</td>
-              <td style={{ fontVariantNumeric: 'tabular-nums' }}>{fmt(row.total_paid)}</td>
-              <td className={balanceClass} style={{ fontVariantNumeric: 'tabular-nums' }}>{fmt(balanceValue(row))}</td>
-              <td>
+              <td data-label="Patient">{row.first_name} {row.last_name}</td>
+              <td data-label="Patient ID" style={{ fontVariantNumeric: 'tabular-nums' }}>{row.patient_code}</td>
+              <td data-label="Total Charged" style={{ fontVariantNumeric: 'tabular-nums' }}>{fmt(row.total_charged)}</td>
+              <td data-label="Total Paid" style={{ fontVariantNumeric: 'tabular-nums' }}>{fmt(row.total_paid)}</td>
+              <td data-label={balanceLabel} className={balanceClass} style={{ fontVariantNumeric: 'tabular-nums' }}>{fmt(balanceValue(row))}</td>
+              <td data-label="Action">
                 <button className="btn btn-sm btn-secondary" onClick={() => openLedgerModal(row)}>
                   View Ledger
                 </button>
@@ -138,7 +138,7 @@ export default function PatientDues() {
       </div>
 
       <div className="toolbar" style={{ alignItems: 'flex-start', gap: 12 }}>
-        <div style={{ position: 'relative', width: 360 }}>
+        <div style={{ position: 'relative', width: '100%', maxWidth: 360 }}>
           <div className="search-box">
             <Search size={15} className="search-icon" />
             <input
@@ -226,7 +226,7 @@ export default function PatientDues() {
                 <div className="empty-state"><p>Loading ledger details...</p></div>
               ) : ledgerData ? (
                 <>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 16, marginBottom: 20 }}>
+                  <div className="form-grid form-grid-2" style={{ marginBottom: 20 }}>
                     <div style={{ padding: 14, border: '1px solid var(--border)', borderRadius: 12 }}>
                       <div style={{ fontSize: 12, color: 'var(--slate-light)', marginBottom: 8 }}>Total Visit History</div>
                       <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--teal-900)' }}>{ledgerData.summary?.total_visits ?? 0}</div>

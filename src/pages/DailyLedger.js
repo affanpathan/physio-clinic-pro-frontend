@@ -279,7 +279,7 @@ export default function DailyLedger() {
 
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginLeft: 12 }}>
           <label style={{ fontSize: 13, color: 'var(--slate-light)', margin: 0 }}>Status</label>
-          <select className="form-select" value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ width: 140 }}>
+          <select className="form-select" value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ minWidth: 140, flex: '1 1 auto' }}>
             <option value="all">All</option>
             <option value="income">Income</option>
             <option value="expense">Expense</option>
@@ -365,10 +365,10 @@ export default function DailyLedger() {
               <tbody>
                 {filteredEntries.map(e => (
                   <tr key={e.id}>
-                    <td style={{ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{displayDate(e.entry_date)}</td>
-                    <td style={{ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{displayTime(e.created_at)}</td>
-                    <td><span className={`badge badge-${e.entry_type}`}>{e.entry_type}</span></td>
-                    <td style={{ color: 'var(--slate)', fontSize: 13 }}>
+                    <td data-label="Date" style={{ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{displayDate(e.entry_date)}</td>
+                    <td data-label="Time" style={{ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{displayTime(e.created_at)}</td>
+                    <td data-label="Type"><span className={`badge badge-${e.entry_type}`}>{e.entry_type}</span></td>
+                    <td data-label="Category" style={{ color: 'var(--slate)', fontSize: 13 }}>
                       {e.visit_id ? '—' : (
                         <>
                           {e.category === 'Product Sale' && e.product_name ? e.product_name : e.category}
@@ -376,29 +376,29 @@ export default function DailyLedger() {
                         </>
                       )}
                     </td>
-                    <td style={{ fontSize: 12.5, color: 'var(--slate)' }} title={e.session_notes || ''}>
+                    <td data-label="Note" style={{ fontSize: 12.5, color: 'var(--slate)' }} title={e.session_notes || ''}>
                       {e.visit_id ? truncateNote(e.session_notes) : '—'}
                     </td>
-                    <td style={{ fontSize: 12.5 }}>
+                    <td data-label="Therapy" style={{ fontSize: 12.5 }}>
                       {getTherapyRows(e).length
                         ? getTherapyRows(e).map((t, i) => (
                             <div key={i}>{t.therapy_type} <span style={{ color: 'var(--slate-light)' }}>({t.duration_minutes}m)</span></div>
                           ))
                         : '—'}
                     </td>
-                    <td><span className={`badge badge-${e.payment_method}`}>{e.payment_method}</span></td>
-                    <td style={{ fontSize: 12.5, color: 'var(--slate-light)' }}>{e.bank_name || '—'}</td>
-                    <td style={{ fontSize: 12.5, color: 'var(--slate-light)' }}>
+                    <td data-label="Payment"><span className={`badge badge-${e.payment_method}`}>{e.payment_method}</span></td>
+                    <td data-label="Bank" style={{ fontSize: 12.5, color: 'var(--slate-light)' }}>{e.bank_name || '—'}</td>
+                    <td data-label="Patient" style={{ fontSize: 12.5, color: 'var(--slate-light)' }}>
                       {e.first_name ? `${e.first_name} ${e.last_name}` : '—'}
                     </td>
-                    <td style={{ fontVariantNumeric: 'tabular-nums' }}>{fmtOrDash(e.fee_charged)}</td>
-                    <td>
+                    <td data-label="Fee Charged" style={{ fontVariantNumeric: 'tabular-nums' }}>{fmtOrDash(e.fee_charged)}</td>
+                    <td data-label="Amount">
                       <span className={e.entry_type === 'income' ? 'amount-income' : 'amount-expense'}>
                         {e.entry_type === 'income' ? '+' : '-'}{fmt(e.amount)}
                       </span>
                     </td>
-                    <td style={{ fontVariantNumeric: 'tabular-nums' }}>{dueAmount(e.fee_charged, e.amount_paid)}</td>
-                    <td>
+                    <td data-label="Due Amount" style={{ fontVariantNumeric: 'tabular-nums' }}>{dueAmount(e.fee_charged, e.amount_paid)}</td>
+                    <td data-label="Action">
                       <button className="btn btn-secondary btn-sm" onClick={() => setDetailEntry(e)} title="Details" style={{ marginRight: 8 }}>
                         Details
                       </button>
@@ -473,14 +473,14 @@ export default function DailyLedger() {
                   <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                     <label className="form-label">Products *</label>
                     {productLines.map((line, idx) => (
-                      <div key={idx} style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center' }}>
-                        <select className="form-select" style={{ flex: 1.2 }} value={line.product_id || ''} onChange={e => handleProductLineSelect(idx, e.target.value)}>
+                      <div key={idx} style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                        <select className="form-select" style={{ flex: '1.2 1 160px' }} value={line.product_id || ''} onChange={e => handleProductLineSelect(idx, e.target.value)}>
                           <option value="">Select product</option>
                           {products.map(p => <option key={p.id} value={p.id}>{p.product_name}</option>)}
                         </select>
-                        <input className="form-input" style={{ flex: 2 }} placeholder="Description" value={line.description} onChange={e => updateProductLine(idx, 'description', e.target.value)} />
-                        <input type="number" step="0.01" className="form-input" style={{ width: 110 }} placeholder={`Charged (${symbol})`} value={line.amount} onChange={e => updateProductLine(idx, 'amount', e.target.value)} />
-                        <input type="number" step="0.01" className="form-input" style={{ width: 110 }} placeholder={`Paid (${symbol})`} value={line.amount_paid} onChange={e => updateProductLine(idx, 'amount_paid', e.target.value)} />
+                        <input className="form-input" style={{ flex: '2 1 160px' }} placeholder="Description" value={line.description} onChange={e => updateProductLine(idx, 'description', e.target.value)} />
+                        <input type="number" step="0.01" className="form-input" style={{ flex: '1 1 110px', minWidth: 90 }} placeholder={`Charged (${symbol})`} value={line.amount} onChange={e => updateProductLine(idx, 'amount', e.target.value)} />
+                        <input type="number" step="0.01" className="form-input" style={{ flex: '1 1 110px', minWidth: 90 }} placeholder={`Paid (${symbol})`} value={line.amount_paid} onChange={e => updateProductLine(idx, 'amount_paid', e.target.value)} />
                         <button type="button" className="btn btn-ghost btn-sm btn-icon" onClick={() => removeProductLine(idx)} disabled={productLines.length === 1} title="Remove">
                           <X size={14} />
                         </button>
@@ -549,7 +549,7 @@ export default function DailyLedger() {
               <button className="btn btn-ghost btn-sm btn-icon" onClick={() => setDetailEntry(null)}><X size={16} /></button>
             </div>
             <div className="modal-body">
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div className="form-grid form-grid-2">
                 <div>
                   <strong>Date</strong>
                   <div style={{ marginTop: 6 }}>{displayDate(detailEntry.entry_date)}</div>

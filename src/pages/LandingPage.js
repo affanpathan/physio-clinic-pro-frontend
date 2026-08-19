@@ -32,8 +32,8 @@ export default function LandingPage({ onLogin, notice = '', navigate }) {
 
   return (
     <div style={pageStyle}>
-      <div style={panelStyle}>
-        <div style={leftPanelStyle}>
+      <div className="landing-panel" style={panelStyle}>
+        <div className="landing-panel-side" style={leftPanelStyle}>
           <h1 style={{ margin: 0, fontSize: 32, color: '#0f172a' }}>Physio Clinic Pro</h1>
           <p style={{ color: '#475569', marginTop: 10, fontSize: 16, lineHeight: 1.6 }}>
             Manage patients, visits, appointments, ledgers, and clinic records from one streamlined dashboard.
@@ -56,7 +56,7 @@ export default function LandingPage({ onLogin, notice = '', navigate }) {
           )}
         </div>
 
-        <div style={rightPanelStyle}>
+        <div className="landing-panel-side" style={rightPanelStyle}>
           <h2 style={{ margin: 0, fontSize: 24 }}>Welcome Back</h2>
           <p style={{ color: '#64748b', marginTop: 8 }}>Sign in to continue to your dashboard.</p>
 
