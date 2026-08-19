@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Activity, Users, Calendar, BookOpen, BarChart2, Menu, X, Stethoscope, CreditCard, Clock, LogOut, FileBarChart, KeyRound, Package, Landmark, ArrowLeftRight } from 'lucide-react';
+import { Activity, Users, Calendar, BookOpen, BarChart2, Menu, X, Stethoscope, CreditCard, Clock, LogOut, FileBarChart, KeyRound, Package, Landmark, ArrowLeftRight, HelpCircle } from 'lucide-react';
 import Dashboard from './pages/Dashboard';
 import Patients from './pages/Patients';
 import Visits from './pages/Visits';
@@ -41,6 +41,8 @@ const NAV = [
   { id: 'patient-dues', label: 'Patient Dues', icon: CreditCard },
   { id: 'reports', label: 'Reports', icon: FileBarChart },
 ];
+
+const HELP_URL = 'https://claude.ai/code/artifact/e50a2fe9-fecf-40dc-97e7-a2f043210656';
 
 const SESSION_EXPIRED_MESSAGE = 'Your session expired. Please sign in again.';
 const SUBSCRIPTION_WARNING_DAYS = 3;
@@ -348,10 +350,20 @@ export default function App() {
         </nav>
         <div className="sidebar-footer">
           {sidebarOpen && <p className="version">v1.0.0 &nbsp;·&nbsp; 2026 <br />Affan Pathan #9427778630</p>}
+          <a
+            href={HELP_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="nav-item"
+            style={{ marginTop: 12, width: '100%', justifyContent: 'flex-start', textDecoration: 'none' }}
+          >
+            <HelpCircle size={18} />
+            {sidebarOpen && <span>Help</span>}
+          </a>
           <button
             className={`nav-item ${page === 'change-password' ? 'active' : ''}`}
             onClick={() => navigate('change-password')}
-            style={{ marginTop: 12, width: '100%', justifyContent: 'flex-start' }}
+            style={{ marginTop: 8, width: '100%', justifyContent: 'flex-start' }}
           >
             <KeyRound size={18} />
             {sidebarOpen && <span>Change Password</span>}
