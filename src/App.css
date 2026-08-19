@@ -255,6 +255,7 @@ tbody td { padding: 11px 14px; color: var(--slate); vertical-align: middle; }
 .alert { padding: 10px 14px; border-radius: var(--radius-sm); font-size: 13px; margin-bottom: 14px; }
 .alert-error { background: var(--coral-light); color: #c0392b; border: 1px solid #f5c6c2; }
 .alert-success { background: var(--green-light); color: #1a7a50; border: 1px solid #b8e8d4; }
+.alert-warning { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
 
 /* ── Responsive ── */
 .sidebar-scrim { display: none; }

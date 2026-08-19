@@ -43,6 +43,7 @@ const NAV = [
 ];
 
 const SESSION_EXPIRED_MESSAGE = 'Your session expired. Please sign in again.';
+const SUBSCRIPTION_WARNING_DAYS = 3;
 
 export default function App() {
   const [page, setPage] = useState(() => {
@@ -68,6 +69,7 @@ export default function App() {
   const [clinicName, setClinicName] = useState('');
   const [currencyCode, setCurrencyCode] = useState('INR');
   const [currencySymbol, setCurrencySymbol] = useState('₹');
+  const [subscriptionValidUntil, setSubscriptionValidUntil] = useState('');
   const [token, setToken] = useState('');
   const [adminAuthorized, setAdminAuthorized] = useState(false);
   const [adminPassword, setAdminPassword] = useState('');
@@ -93,6 +95,7 @@ export default function App() {
         setClinicName(storedAuth.clinicName || '');
         setCurrencyCode(storedAuth.currencyCode || 'INR');
         setCurrencySymbol(storedAuth.currencySymbol || '₹');
+        setSubscriptionValidUntil(storedAuth.subscriptionValidUntil || '');
         setLoggedIn(true);
         if (page === 'landing') {
           setPage('dashboard');
@@ -161,6 +164,15 @@ export default function App() {
 
   const isAdminPage = page === 'clinic-master' || page === 'clinic-users';
 
+  // Whole days between today and the clinic's subscription date, or null when unset/unparsable.
+  const subscriptionDaysRemaining = (() => {
+    if (!subscriptionValidUntil) return null;
+    const expiry = new Date(subscriptionValidUntil);
+    if (Number.isNaN(expiry.getTime())) return null;
+    const today = new Date(new Date().toISOString().split('T')[0]);
+    return Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
+  })();
+
   const handleLogout = () => {
     setLoggedIn(false);
     setPage('landing');
@@ -169,6 +181,7 @@ export default function App() {
     setClinicName('');
     setCurrencyCode('INR');
     setCurrencySymbol('₹');
+    setSubscriptionValidUntil('');
     setToken('');
     setAdminToken('');
     setAdminAuthorized(false);
@@ -210,12 +223,14 @@ export default function App() {
     const resolvedClinicName = data?.clinic_name || data?.user?.clinic_name || '';
     const resolvedCurrencyCode = data?.currency || data?.user?.currency || 'INR';
     const resolvedCurrencySymbol = data?.currency_symbol || data?.user?.currency_symbol || '₹';
+    const resolvedSubscriptionValidUntil = data?.subscription_valid_until || data?.user?.subscription_valid_until || '';
     setLoggedIn(true);
     setToken(resolvedToken);
     setClinicId(resolvedClinicId);
     setClinicName(resolvedClinicName);
     setCurrencyCode(resolvedCurrencyCode);
     setCurrencySymbol(resolvedCurrencySymbol);
+    setSubscriptionValidUntil(resolvedSubscriptionValidUntil);
     setSessionNotice('');
     writeAuth({
       token: resolvedToken,
@@ -223,6 +238,7 @@ export default function App() {
       clinicName: resolvedClinicName,
       currencyCode: resolvedCurrencyCode,
       currencySymbol: resolvedCurrencySymbol,
+      subscriptionValidUntil: resolvedSubscriptionValidUntil,
     });
     if (page === 'landing') {
       navigate('dashboard');
@@ -358,6 +374,17 @@ export default function App() {
           </button>
           <span className="mobile-topbar-title">{clinicName || 'PhysioClinicPro'}</span>
         </div>
+        {subscriptionDaysRemaining !== null
+          && subscriptionDaysRemaining >= 0
+          && subscriptionDaysRemaining <= SUBSCRIPTION_WARNING_DAYS && (
+          <div className="alert alert-warning" style={{ margin: '16px 20px 0' }}>
+            Your clinic subscription expires {subscriptionDaysRemaining === 0 ? 'today' : `in ${subscriptionDaysRemaining} day${subscriptionDaysRemaining === 1 ? '' : 's'}`}, on{' '}
+            <strong>
+              {new Date(subscriptionValidUntil).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })}
+            </strong>
+            {' '}— please renew soon to avoid interruption.
+          </div>
+        )}
         <div className="page-wrapper">
           {page === 'landing' && <LandingPage onLogin={handleLogin} />}
           {page === 'dashboard' && <Dashboard navigate={navigate} />}
