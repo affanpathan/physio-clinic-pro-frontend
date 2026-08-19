@@ -9,7 +9,7 @@ import { downloadCsvExport } from '../utils/exportCsv';
 const API_URL = process.env.REACT_APP_API_URL || '/api';
 
 const EXPENSE_CATEGORIES = ['Rent', 'Utilities', 'Salaries', 'Equipment', 'Medicines/Supplies', 'Maintenance', 'Marketing', 'Insurance', 'Miscellaneous'];
-const INCOME_CATEGORIES = ['Therapy Fee', 'Consultation', 'Package Sale', 'Product Sale', 'Product Sale Payment', 'Other Income'];
+const INCOME_CATEGORIES = ['Therapy Fee', 'Consultation', 'Package Sale', 'Product Sale', 'Product Sale Payment', 'Other Income', 'Opening Balance'];
 const SALE_CATEGORIES = ['Product Sale', 'Package Sale'];
 
 const EMPTY_ENTRY = {
@@ -235,12 +235,15 @@ export default function DailyLedger() {
   };
 
   const filteredEntries = entries.filter(e => statusFilter === 'all' ? true : e.entry_type === statusFilter);
-  const income = filteredEntries.filter(e => e.entry_type === 'income').reduce((s, e) => s + Number(e.amount), 0);
-  const expenses = filteredEntries.filter(e => e.entry_type === 'expense').reduce((s, e) => s + Number(e.amount), 0);
-  const cashIncome = filteredEntries.filter(e => e.entry_type === 'income' && e.payment_method === 'cash').reduce((s, e) => s + Number(e.amount), 0);
-  const onlineIncome = filteredEntries.filter(e => e.entry_type === 'income' && e.payment_method === 'online').reduce((s, e) => s + Number(e.amount), 0);
-  const cashExpenses = filteredEntries.filter(e => e.entry_type === 'expense' && e.payment_method === 'cash').reduce((s, e) => s + Number(e.amount), 0);
-  const onlineExpenses = filteredEntries.filter(e => e.entry_type === 'expense' && e.payment_method === 'online').reduce((s, e) => s + Number(e.amount), 0);
+  // Opening Balance entries seed a starting cash/bank position, not new income/expense —
+  // keep them out of these period totals (they still show in the entries table below).
+  const summaryEntries = filteredEntries.filter(e => e.category !== 'Opening Balance');
+  const income = summaryEntries.filter(e => e.entry_type === 'income').reduce((s, e) => s + Number(e.amount), 0);
+  const expenses = summaryEntries.filter(e => e.entry_type === 'expense').reduce((s, e) => s + Number(e.amount), 0);
+  const cashIncome = summaryEntries.filter(e => e.entry_type === 'income' && e.payment_method === 'cash').reduce((s, e) => s + Number(e.amount), 0);
+  const onlineIncome = summaryEntries.filter(e => e.entry_type === 'income' && e.payment_method === 'online').reduce((s, e) => s + Number(e.amount), 0);
+  const cashExpenses = summaryEntries.filter(e => e.entry_type === 'expense' && e.payment_method === 'cash').reduce((s, e) => s + Number(e.amount), 0);
+  const onlineExpenses = summaryEntries.filter(e => e.entry_type === 'expense' && e.payment_method === 'online').reduce((s, e) => s + Number(e.amount), 0);
   const net = income - expenses;
   const netCash = cashIncome - cashExpenses;
   const netOnline = onlineIncome - onlineExpenses;

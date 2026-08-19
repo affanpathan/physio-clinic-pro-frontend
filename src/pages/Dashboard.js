@@ -42,6 +42,7 @@ export default function Dashboard({ navigate }) {
     { label: "Today's Income", value: fmt(data.today_income), icon: Banknote, mod: 'green' },
     { label: 'Active Patients', value: data.total_patients, icon: Users, mod: '' },
     { label: 'Monthly Income', value: fmt(data.monthly_income), icon: TrendingUp, mod: '' },
+    { label: 'Cash on Hand', value: fmt(data.cash_on_hand), icon: Banknote, mod: 'green' },
     { label: 'Pending Balance', value: fmt(data.pending_balance), icon: AlertCircle, mod: 'coral' },
   ];
 

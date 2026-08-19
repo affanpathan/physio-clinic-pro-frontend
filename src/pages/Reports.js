@@ -18,7 +18,7 @@ const displayDate = (d) => {
 function buildReportQueryParams({ dateFrom, dateTo, entryType, therapistName, patientId, paymentMethod, bankId, productId }) {
   const params = new URLSearchParams({ date_from: dateFrom, date_to: dateTo });
   if (entryType === 'sale') { params.set('entry_type', 'income'); params.set('category', SALE_CATEGORIES.join(',')); }
-  else if (entryType === 'income_expense') { params.set('exclude_category', SALE_CATEGORIES.join(',')); }
+  else if (entryType === 'income_expense') { params.set('exclude_category', [...SALE_CATEGORIES, 'Opening Balance'].join(',')); }
   else if (entryType) { params.set('entry_type', entryType); }
   if (therapistName) params.set('therapist_name', therapistName);
   if (patientId) params.set('patient_id', patientId);
