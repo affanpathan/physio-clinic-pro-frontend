@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, X, Download } from 'lucide-react';
 import { useCurrency } from '../context/CurrencyContext';
 import { useKeyboardListNav } from '../hooks/useKeyboardListNav';
 import { truncateNote } from '../utils/text';
+import { getProductRows } from '../utils/products';
 import { downloadCsvExport } from '../utils/exportCsv';
 
 const API_URL = process.env.REACT_APP_API_URL || '/api';
@@ -443,7 +444,11 @@ export default function Reports() {
                       <td data-label="Category / Product" style={{ color: 'var(--slate)', fontSize: 13 }}>
                         {r.visit_id ? '—' : (
                           <>
-                            {(r.category === 'Product Sale' && r.product_name ? r.product_name : r.category) || '—'}
+                            {r.category === 'Product Sale' && getProductRows(r).length
+                              ? getProductRows(r).map((pl, i) => (
+                                  <div key={i}>{pl.product_name} <span style={{ color: 'var(--slate-light)' }}>({fmt(pl.amount)})</span></div>
+                                ))
+                              : (r.category || '—')}
                             {SALE_CATEGORIES.includes(r.category) && <span className="badge badge-sale" style={{ marginLeft: 6 }}>Sale</span>}
                           </>
                         )}

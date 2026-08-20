@@ -4,6 +4,7 @@ import { useCurrency } from '../context/CurrencyContext';
 import { useKeyboardListNav } from '../hooks/useKeyboardListNav';
 import { useEscapeKey } from '../hooks/useEscapeKey';
 import { getTherapyRows } from '../utils/therapy';
+import { getProductRows } from '../utils/products';
 import { truncateNote } from '../utils/text';
 import { downloadCsvExport } from '../utils/exportCsv';
 const API_URL = process.env.REACT_APP_API_URL || '/api';
@@ -18,12 +19,13 @@ const EMPTY_ENTRY = {
   category: '',
   description: '',
   amount: '',
+  paid_amount: '',
   payment_method: 'cash',
   bank_id: '',
   reference_number: '',
 };
 
-const EMPTY_PRODUCT_LINE = { product_id: '', description: '', amount: '', amount_paid: '' };
+const EMPTY_PRODUCT_LINE = { product_id: '', description: '', amount: '' };
 
 const displayDate = (d) => {
   if (!d) return '—';
@@ -184,25 +186,31 @@ export default function DailyLedger() {
         .map(l => ({ ...l, amount: Number(l.amount) || 0 }))
         .filter(l => l.amount > 0 && (l.product_id || l.description.trim()));
       if (!validLines.length) { setError('Add at least one product with a description and amount.'); return; }
+      const totalAmount = validLines.reduce((s, l) => s + l.amount, 0);
+      const paidNow = Number(form.paid_amount) || 0;
+      if (paidNow > totalAmount) { setError('Paid amount cannot exceed the total charged.'); return; }
       setSaving(true); setError('');
       try {
-        for (const line of validLines) {
-          const payload = {
-            entry_date: form.entry_date,
-            entry_type: 'income',
-            category: 'Product Sale',
-            description: line.description || '',
-            amount: line.amount,
-            amount_paid: line.amount_paid || 0,
-            payment_method: form.payment_method,
-            bank_id: form.bank_id,
-            reference_number: form.reference_number,
-            patient_id: form.patient_id ? form.patient_id : null,
-            product_id: line.product_id ? line.product_id : null,
-          };
-          const res = await fetch(`${API_URL}/ledger`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-          if (!res.ok) { const e = await res.json(); throw new Error(e.error); }
-        }
+        const payload = {
+          entry_date: form.entry_date,
+          entry_type: 'income',
+          category: 'Product Sale',
+          description: '',
+          amount: totalAmount,
+          amount_paid: paidNow,
+          payment_method: form.payment_method,
+          bank_id: form.bank_id,
+          reference_number: form.reference_number,
+          patient_id: form.patient_id ? form.patient_id : null,
+          product_lines: validLines.map(l => ({
+            product_id: l.product_id || null,
+            product_name: products.find(p => p.id === Number(l.product_id))?.product_name || null,
+            description: l.description || '',
+            amount: l.amount,
+          })),
+        };
+        const res = await fetch(`${API_URL}/ledger`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        if (!res.ok) { const e = await res.json(); throw new Error(e.error); }
         setShowModal(false); loadEntries();
       } catch (e) { setError(e.message); }
       setSaving(false);
@@ -371,7 +379,11 @@ export default function DailyLedger() {
                     <td data-label="Category" style={{ color: 'var(--slate)', fontSize: 13 }}>
                       {e.visit_id ? '—' : (
                         <>
-                          {e.category === 'Product Sale' && e.product_name ? e.product_name : e.category}
+                          {e.category === 'Product Sale' && getProductRows(e).length
+                            ? getProductRows(e).map((pl, i) => (
+                                <div key={i}>{pl.product_name} <span style={{ color: 'var(--slate-light)' }}>({fmt(pl.amount)})</span></div>
+                              ))
+                            : e.category}
                           {SALE_CATEGORIES.includes(e.category) && <span className="badge badge-sale" style={{ marginLeft: 6 }}>Sale</span>}
                         </>
                       )}
@@ -463,6 +475,7 @@ export default function DailyLedger() {
                       ...f,
                       category: newCategory,
                       amount: enteringSale ? '' : f.amount,
+                      paid_amount: enteringSale ? '' : f.paid_amount,
                     }));
                   }}>
                     <option value="">Select category</option>
@@ -480,17 +493,22 @@ export default function DailyLedger() {
                         </select>
                         <input className="form-input" style={{ flex: '2 1 160px' }} placeholder="Description" value={line.description} onChange={e => updateProductLine(idx, 'description', e.target.value)} />
                         <input type="number" step="0.01" className="form-input" style={{ flex: '1 1 110px', minWidth: 90 }} placeholder={`Charged (${symbol})`} value={line.amount} onChange={e => updateProductLine(idx, 'amount', e.target.value)} />
-                        <input type="number" step="0.01" className="form-input" style={{ flex: '1 1 110px', minWidth: 90 }} placeholder={`Paid (${symbol})`} value={line.amount_paid} onChange={e => updateProductLine(idx, 'amount_paid', e.target.value)} />
                         <button type="button" className="btn btn-ghost btn-sm btn-icon" onClick={() => removeProductLine(idx)} disabled={productLines.length === 1} title="Remove">
                           <X size={14} />
                         </button>
                       </div>
                     ))}
                     <button type="button" className="btn btn-secondary btn-sm" onClick={addProductLine}><Plus size={14} />Add Product</button>
+                    <div style={{ marginTop: 12, display: 'flex', gap: 8, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                      <div style={{ flex: '1 1 160px', maxWidth: 220 }}>
+                        <label className="form-label">Paid Amount ({symbol})</label>
+                        <input type="number" step="0.01" className="form-input" placeholder="0.00 for unpaid / partial" value={form.paid_amount} onChange={e => setForm({ ...form, paid_amount: e.target.value })} />
+                      </div>
+                    </div>
                     <div style={{ marginTop: 8, fontSize: 13, color: 'var(--slate-light)' }}>
                       Total Charged: <strong>{fmt(productLines.reduce((s, l) => s + (Number(l.amount) || 0), 0))}</strong>
-                      {' · '}Total Paid: <strong>{fmt(productLines.reduce((s, l) => s + (Number(l.amount_paid) || 0), 0))}</strong>
-                      {' · '}Total Due: <strong>{fmt(productLines.reduce((s, l) => s + (Number(l.amount) || 0) - (Number(l.amount_paid) || 0), 0))}</strong>
+                      {' · '}Total Paid: <strong>{fmt(Number(form.paid_amount) || 0)}</strong>
+                      {' · '}Total Due: <strong>{fmt(productLines.reduce((s, l) => s + (Number(l.amount) || 0), 0) - (Number(form.paid_amount) || 0))}</strong>
                     </div>
                   </div>
                 )}
@@ -564,7 +582,13 @@ export default function DailyLedger() {
                 </div>
                 <div>
                   <strong>Category</strong>
-                  <div style={{ marginTop: 6 }}>{detailEntry.visit_id ? '—' : (detailEntry.category === 'Product Sale' && detailEntry.product_name ? detailEntry.product_name : detailEntry.category)}</div>
+                  <div style={{ marginTop: 6 }}>
+                    {detailEntry.visit_id ? '—' : (
+                      detailEntry.category === 'Product Sale' && getProductRows(detailEntry).length
+                        ? getProductRows(detailEntry).map((pl, i) => <div key={i}>{pl.product_name} ({fmt(pl.amount)})</div>)
+                        : detailEntry.category
+                    )}
+                  </div>
                 </div>
                 <div style={{ gridColumn: '1 / -1' }}>
                   <strong>Description</strong>
