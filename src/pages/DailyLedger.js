@@ -25,7 +25,7 @@ const EMPTY_ENTRY = {
   reference_number: '',
 };
 
-const EMPTY_PRODUCT_LINE = { product_id: '', description: '', amount: '' };
+const EMPTY_PRODUCT_LINE = { product_id: '', description: '', quantity: 1, amount: '' };
 
 const displayDate = (d) => {
   if (!d) return '—';
@@ -153,8 +153,17 @@ export default function DailyLedger() {
       ...l,
       product_id: productId,
       description: prod ? (prod.description || '') : l.description,
-      amount: prod && prod.price ? Number(prod.price) : l.amount,
+      amount: prod && prod.price ? Number(prod.price) * (Number(l.quantity) || 1) : l.amount,
     } : l));
+  };
+
+  const handleProductLineQuantity = (idx, value) => {
+    const quantity = Math.max(1, parseInt(value, 10) || 1);
+    setProductLines(lines => lines.map((l, i) => {
+      if (i !== idx) return l;
+      const prod = l.product_id ? products.find(p => p.id === Number(l.product_id)) : null;
+      return { ...l, quantity, amount: prod && prod.price ? Number(prod.price) * quantity : l.amount };
+    }));
   };
 
   const addProductLine = () => setProductLines(lines => [...lines, { ...EMPTY_PRODUCT_LINE }]);
@@ -206,6 +215,7 @@ export default function DailyLedger() {
             product_id: l.product_id || null,
             product_name: products.find(p => p.id === Number(l.product_id))?.product_name || null,
             description: l.description || '',
+            quantity: Number(l.quantity) || 1,
             amount: l.amount,
           })),
         };
@@ -381,7 +391,7 @@ export default function DailyLedger() {
                         <>
                           {e.category === 'Product Sale' && getProductRows(e).length
                             ? getProductRows(e).map((pl, i) => (
-                                <div key={i}>{pl.product_name} <span style={{ color: 'var(--slate-light)' }}>({fmt(pl.amount)})</span></div>
+                                <div key={i}>{pl.product_name}{pl.quantity > 1 ? ` x${pl.quantity}` : ''} <span style={{ color: 'var(--slate-light)' }}>({fmt(pl.amount)})</span></div>
                               ))
                             : e.category}
                           {SALE_CATEGORIES.includes(e.category) && <span className="badge badge-sale" style={{ marginLeft: 6 }}>Sale</span>}
@@ -414,9 +424,11 @@ export default function DailyLedger() {
                       <button className="btn btn-secondary btn-sm" onClick={() => setDetailEntry(e)} title="Details" style={{ marginRight: 8 }}>
                         Details
                       </button>
-                      <button className="btn btn-danger btn-sm btn-icon" onClick={() => handleDelete(e.id)} title="Delete">
-                        <Trash2 size={13} />
-                      </button>
+                      {!e.visit_id && (
+                        <button className="btn btn-danger btn-sm btn-icon" onClick={() => handleDelete(e.id)} title="Delete">
+                          <Trash2 size={13} />
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -492,6 +504,7 @@ export default function DailyLedger() {
                           {products.map(p => <option key={p.id} value={p.id}>{p.product_name}</option>)}
                         </select>
                         <input className="form-input" style={{ flex: '2 1 160px' }} placeholder="Description" value={line.description} onChange={e => updateProductLine(idx, 'description', e.target.value)} />
+                        <input type="number" min="1" step="1" className="form-input" style={{ flex: '0.6 1 70px', minWidth: 60 }} placeholder="Qty" value={line.quantity} onChange={e => handleProductLineQuantity(idx, e.target.value)} />
                         <input type="number" step="0.01" className="form-input" style={{ flex: '1 1 110px', minWidth: 90 }} placeholder={`Charged (${symbol})`} value={line.amount} onChange={e => updateProductLine(idx, 'amount', e.target.value)} />
                         <button type="button" className="btn btn-ghost btn-sm btn-icon" onClick={() => removeProductLine(idx)} disabled={productLines.length === 1} title="Remove">
                           <X size={14} />
@@ -585,7 +598,7 @@ export default function DailyLedger() {
                   <div style={{ marginTop: 6 }}>
                     {detailEntry.visit_id ? '—' : (
                       detailEntry.category === 'Product Sale' && getProductRows(detailEntry).length
-                        ? getProductRows(detailEntry).map((pl, i) => <div key={i}>{pl.product_name} ({fmt(pl.amount)})</div>)
+                        ? getProductRows(detailEntry).map((pl, i) => <div key={i}>{pl.product_name}{pl.quantity > 1 ? ` x${pl.quantity}` : ''} ({fmt(pl.amount)})</div>)
                         : detailEntry.category
                     )}
                   </div>

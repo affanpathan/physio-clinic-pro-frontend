@@ -446,7 +446,7 @@ export default function Reports() {
                           <>
                             {r.category === 'Product Sale' && getProductRows(r).length
                               ? getProductRows(r).map((pl, i) => (
-                                  <div key={i}>{pl.product_name} <span style={{ color: 'var(--slate-light)' }}>({fmt(pl.amount)})</span></div>
+                                  <div key={i}>{pl.product_name}{pl.quantity > 1 ? ` x${pl.quantity}` : ''} <span style={{ color: 'var(--slate-light)' }}>({fmt(pl.amount)})</span></div>
                                 ))
                               : (r.category || '—')}
                             {SALE_CATEGORIES.includes(r.category) && <span className="badge badge-sale" style={{ marginLeft: 6 }}>Sale</span>}

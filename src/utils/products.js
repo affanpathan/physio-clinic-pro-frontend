@@ -5,11 +5,12 @@ export const getProductRows = (row) => {
     return row.product_lines.map(l => ({
       product_id: l.product_id ?? null,
       product_name: l.product_name || l.description || 'Product',
+      quantity: Number(l.quantity) || 1,
       amount: Number(l.amount) || 0,
     }));
   }
   if (row.product_id || row.product_name) {
-    return [{ product_id: row.product_id ?? null, product_name: row.product_name || row.description || 'Product', amount: Number(row.amount) || 0 }];
+    return [{ product_id: row.product_id ?? null, product_name: row.product_name || row.description || 'Product', quantity: 1, amount: Number(row.amount) || 0 }];
   }
   return [];
 };
