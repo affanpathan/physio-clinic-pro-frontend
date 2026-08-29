@@ -319,6 +319,37 @@ export default function Reports() {
         </div>
       )}
 
+      {summary?.cash && (
+        <div className="card" style={{ marginTop: 12 }}>
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Cash</th>
+                  <th>Income</th>
+                  <th>Expense</th>
+                  <th>Net</th>
+                  <th>Current Balance</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td data-label="Cash">Cash</td>
+                  <td data-label="Income"><span className="amount-income">{fmt(summary.cash.income)}</span></td>
+                  <td data-label="Expense"><span className="amount-expense">{fmt(summary.cash.expense)}</span></td>
+                  <td data-label="Net">
+                    <span style={{ color: (summary.cash.income - summary.cash.expense) >= 0 ? 'var(--green)' : 'var(--coral)' }}>
+                      {fmt(summary.cash.income - summary.cash.expense)}
+                    </span>
+                  </td>
+                  <td data-label="Current Balance">{fmt(summary.cash.balance)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {summary?.byBank?.length > 0 && (
         <div className="card" style={{ marginTop: 12 }}>
           <div className="table-wrap">
