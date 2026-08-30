@@ -419,7 +419,8 @@ tbody td { padding: 11px 14px; color: var(--slate); vertical-align: middle; }
   transition: all 0.12s; color: var(--teal-900);
 }
 .time-slot.available:hover { background: var(--teal-50); border-color: var(--teal-600); }
-.time-slot.booked { background: var(--green-light) !important; border-color: var(--green); color: var(--green); cursor: not-allowed; }
+.time-slot.booked { background: var(--green-light) !important; border-color: var(--green); color: var(--green); cursor: pointer; }
+.time-slot.booked:hover { filter: brightness(0.96); border-color: var(--green); }
 
 /* ── Calendar Week View ── */
 .calendar-week-view { padding: 20px; overflow-x: auto; }
@@ -437,7 +438,8 @@ tbody td { padding: 11px 14px; color: var(--slate); vertical-align: middle; }
   min-height: 30px;
 }
 .week-slot.available:hover { background: var(--teal-50); border-color: var(--teal-600); }
-.week-slot.booked { background: var(--green-light) !important; border-color: var(--green); color: var(--green); cursor: not-allowed; }
+.week-slot.booked { background: var(--green-light) !important; border-color: var(--green); color: var(--green); cursor: pointer; }
+.week-slot.booked:hover { filter: brightness(0.96); border-color: var(--green); }
 
 /* ── Calendar Month View ── */
 .calendar-month-view { padding: 20px; }

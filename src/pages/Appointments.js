@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ChevronLeft, ChevronRight, X, Plus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { useKeyboardListNav } from '../hooks/useKeyboardListNav';
 import { useEscapeKey } from '../hooks/useEscapeKey';
 const API_URL = process.env.REACT_APP_API_URL || '/api';
@@ -19,7 +19,9 @@ export default function Appointments() {
   const [loading, setLoading] = useState(false);
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState(null);
-  const [bookingForm, setBookingForm] = useState({ patient_id: '', therapy_type: '', notes: '' });
+  const [editingAppt, setEditingAppt] = useState(null);
+  const [detailAppt, setDetailAppt] = useState(null);
+  const [bookingForm, setBookingForm] = useState({ patient_id: '', therapy_type: '', notes: '', status: 'scheduled' });
   const [patients, setPatients] = useState([]);
   const [patSearch, setPatSearch] = useState('');
   const [error, setError] = useState('');
@@ -95,10 +97,47 @@ export default function Appointments() {
   };
 
   const handleSlotClick = (date, time) => {
+    setEditingAppt(null);
     setSelectedSlot({ date, time });
-    setBookingForm({ patient_id: '', therapy_type: '', notes: '' });
+    setBookingForm({ patient_id: '', therapy_type: '', notes: '', status: 'scheduled' });
+    setPatSearch('');
     setError('');
     setShowBookingModal(true);
+  };
+
+  const startEdit = (apt) => {
+    setEditingAppt(apt);
+    setSelectedSlot({ date: apt.appointment_date, time: apt.appointment_time });
+    setBookingForm({
+      patient_id: apt.patient_id,
+      therapy_type: apt.therapy_type || '',
+      notes: apt.notes || '',
+      status: apt.status || 'scheduled',
+    });
+    setPatSearch(`${apt.first_name || ''} ${apt.last_name || ''}`.trim());
+    setPatients([]);
+    setError('');
+    setDetailAppt(null);
+    setShowBookingModal(true);
+  };
+
+  const closeBookingModal = () => {
+    setShowBookingModal(false);
+    setEditingAppt(null);
+    setSelectedSlot(null);
+  };
+
+  const handleDeleteAppt = async (apt) => {
+    if (!window.confirm('Cancel this appointment? This cannot be undone.')) return;
+    try {
+      const response = await fetch(`${API_URL}/appointments/${apt.id}`, { method: 'DELETE' });
+      if (!response.ok) throw new Error('Failed to cancel appointment');
+      setDetailAppt(null);
+      const [start, end] = getDateRange();
+      loadAppointments(start, end);
+    } catch (err) {
+      window.alert(err.message);
+    }
   };
 
   const selectBookingPatient = (p) => {
@@ -110,7 +149,8 @@ export default function Appointments() {
   const { highlightedIndex: patHighlight, setHighlightedIndex: setPatHighlight, onKeyDown: onPatSearchKeyDown } =
     useKeyboardListNav(patients, selectBookingPatient, () => setPatients([]));
 
-  useEscapeKey(showBookingModal, () => setShowBookingModal(false));
+  useEscapeKey(showBookingModal, closeBookingModal);
+  useEscapeKey(!!detailAppt, () => setDetailAppt(null));
 
   const handleBookingSubmit = async () => {
     if (!selectedSlot || !bookingForm.patient_id) {
@@ -118,24 +158,38 @@ export default function Appointments() {
       return;
     }
     try {
-      const response = await fetch(`${API_URL}/appointments`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          patient_id: bookingForm.patient_id || null,
-          appointment_date: selectedSlot.date,
-          appointment_time: selectedSlot.time,
-          duration_minutes: 30,
-          therapy_type: bookingForm.therapy_type,
-          status: 'scheduled',
-          notes: bookingForm.notes,
-        }),
-      });
-      if (!response.ok) throw new Error('Failed to create appointment');
+      const response = editingAppt
+        ? await fetch(`${API_URL}/appointments/${editingAppt.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              patient_id: bookingForm.patient_id || null,
+              therapist_name: editingAppt.therapist_name || '',
+              appointment_date: editingAppt.appointment_date,
+              appointment_time: editingAppt.appointment_time,
+              duration_minutes: editingAppt.duration_minutes || 30,
+              therapy_type: bookingForm.therapy_type,
+              status: bookingForm.status || 'scheduled',
+              notes: bookingForm.notes,
+            }),
+          })
+        : await fetch(`${API_URL}/appointments`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              patient_id: bookingForm.patient_id || null,
+              appointment_date: selectedSlot.date,
+              appointment_time: selectedSlot.time,
+              duration_minutes: 30,
+              therapy_type: bookingForm.therapy_type,
+              status: 'scheduled',
+              notes: bookingForm.notes,
+            }),
+          });
+      if (!response.ok) throw new Error(editingAppt ? 'Failed to update appointment' : 'Failed to create appointment');
       const [start, end] = getDateRange();
       loadAppointments(start, end);
-      setShowBookingModal(false);
-      setSelectedSlot(null);
+      closeBookingModal();
     } catch (err) {
       setError(err.message);
     }
@@ -175,9 +229,8 @@ export default function Appointments() {
                 <div className="time-label">{time}</div>
                 <button
                   className={`time-slot ${apt ? 'booked' : 'available'} ${slotColor}`}
-                  onClick={() => !apt && handleSlotClick(dateStr, time)}
-                  disabled={!!apt}
-                  title={apt ? `${apt.first_name} ${apt.last_name}` : 'Click to book'}
+                  onClick={() => apt ? setDetailAppt(apt) : handleSlotClick(dateStr, time)}
+                  title={apt ? `${apt.first_name} ${apt.last_name} — click for details` : 'Click to book'}
                 >
                   {apt ? `${apt.first_name?.charAt(0)}${apt.last_name?.charAt(0)}` : '+'}
                 </button>
@@ -220,9 +273,8 @@ export default function Appointments() {
                   <button
                     key={dateStr}
                     className={`week-slot ${apt ? 'booked' : 'available'} ${slotColor}`}
-                    onClick={() => !apt && handleSlotClick(dateStr, time)}
-                    disabled={!!apt}
-                    title={apt ? `${apt.first_name} ${apt.last_name}` : 'Click to book'}
+                    onClick={() => apt ? setDetailAppt(apt) : handleSlotClick(dateStr, time)}
+                    title={apt ? `${apt.first_name} ${apt.last_name} — click for details` : 'Click to book'}
                   >
                     {apt ? `${apt.first_name?.charAt(0)}${apt.last_name?.charAt(0)}` : ''}
                   </button>
@@ -335,8 +387,8 @@ export default function Appointments() {
         <div className="modal-overlay">
           <div className="modal modal-md">
             <div className="modal-header">
-              <span className="modal-title">Book Appointment</span>
-              <button className="btn btn-sm btn-icon" onClick={() => setShowBookingModal(false)}><X size={16} /></button>
+              <span className="modal-title">{editingAppt ? 'Edit Appointment' : 'Book Appointment'}</span>
+              <button className="btn btn-sm btn-icon" onClick={closeBookingModal}><X size={16} /></button>
             </div>
             <div className="modal-body">
               {selectedSlot && (
@@ -384,6 +436,15 @@ export default function Appointments() {
                     </select>
                   </div>
 
+                  {editingAppt && (
+                    <div className="form-section">
+                      <label style={{ display: 'block', marginBottom: 8, fontSize: 13, fontWeight: 500, color: 'var(--slate)' }}>Status</label>
+                      <select className="form-select" value={bookingForm.status} onChange={e => setBookingForm({ ...bookingForm, status: e.target.value })}>
+                        {['scheduled', 'completed', 'cancelled', 'no-show'].map(s => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                    </div>
+                  )}
+
                   <div className="form-section">
                     <label style={{ display: 'block', marginBottom: 8, fontSize: 13, fontWeight: 500, color: 'var(--slate)' }}>Notes</label>
                     <textarea
@@ -404,8 +465,68 @@ export default function Appointments() {
               )}
             </div>
             <div className="modal-footer">
-              <button className="btn btn-ghost" onClick={() => setShowBookingModal(false)}>Cancel</button>
-              <button className="btn btn-primary" onClick={handleBookingSubmit}>Book Appointment</button>
+              <button className="btn btn-ghost" onClick={closeBookingModal}>Cancel</button>
+              <button className="btn btn-primary" onClick={handleBookingSubmit}>{editingAppt ? 'Save Changes' : 'Book Appointment'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {detailAppt && (
+        <div className="modal-overlay">
+          <div className="modal modal-md">
+            <div className="modal-header">
+              <span className="modal-title">Appointment Details</span>
+              <button className="btn btn-sm btn-icon" onClick={() => setDetailAppt(null)}><X size={16} /></button>
+            </div>
+            <div className="modal-body">
+              <div className="form-grid form-grid-2">
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <strong>Patient</strong>
+                  <div style={{ marginTop: 6 }}>
+                    {detailAppt.first_name ? `${detailAppt.first_name} ${detailAppt.last_name}` : '—'}
+                    {detailAppt.patient_code ? ` (${detailAppt.patient_code})` : ''}
+                  </div>
+                </div>
+                <div>
+                  <strong>Date</strong>
+                  <div style={{ marginTop: 6 }}>{detailAppt.appointment_date}</div>
+                </div>
+                <div>
+                  <strong>Time</strong>
+                  <div style={{ marginTop: 6 }}>{detailAppt.appointment_time}</div>
+                </div>
+                <div>
+                  <strong>Duration</strong>
+                  <div style={{ marginTop: 6 }}>{detailAppt.duration_minutes} min</div>
+                </div>
+                <div>
+                  <strong>Status</strong>
+                  <div style={{ marginTop: 6 }}>{detailAppt.status || '—'}</div>
+                </div>
+                <div>
+                  <strong>Therapy Type</strong>
+                  <div style={{ marginTop: 6 }}>{detailAppt.therapy_type || '—'}</div>
+                </div>
+                <div>
+                  <strong>Therapist</strong>
+                  <div style={{ marginTop: 6 }}>{detailAppt.therapist_name || '—'}</div>
+                </div>
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <strong>Notes</strong>
+                  <div style={{ marginTop: 6 }}>{detailAppt.notes || '—'}</div>
+                </div>
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <strong>Created</strong>
+                  <div style={{ marginTop: 6 }}>{detailAppt.created_at ? new Date(detailAppt.created_at).toLocaleString() : '—'}</div>
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-danger" onClick={() => handleDeleteAppt(detailAppt)}>Cancel Appointment</button>
+              <div style={{ flex: 1 }} />
+              <button className="btn btn-ghost" onClick={() => setDetailAppt(null)}>Close</button>
+              <button className="btn btn-primary" onClick={() => startEdit(detailAppt)}>Edit</button>
             </div>
           </div>
         </div>
