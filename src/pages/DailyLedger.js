@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, X, Trash2, ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Download } from 'lucide-react';
+import { Plus, X, Trash2, Edit2, ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Download } from 'lucide-react';
 import { useCurrency } from '../context/CurrencyContext';
 import { useKeyboardListNav } from '../hooks/useKeyboardListNav';
 import { useEscapeKey } from '../hooks/useEscapeKey';
@@ -71,6 +71,7 @@ export default function DailyLedger() {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [editEntry, setEditEntry] = useState(null);
   const [form, setForm] = useState(EMPTY_ENTRY);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -173,7 +174,7 @@ export default function DailyLedger() {
   const { highlightedIndex: patHighlight, setHighlightedIndex: setPatHighlight, onKeyDown: onPatSearchKeyDown } =
     useKeyboardListNav(patients, selectPatient, () => setPatients([]));
 
-  useEscapeKey(showModal, () => setShowModal(false));
+  useEscapeKey(showModal, () => { setShowModal(false); setEditEntry(null); });
   useEscapeKey(!!detailEntry, () => setDetailEntry(null));
 
   const shiftDate = (days) => {
@@ -224,9 +225,11 @@ export default function DailyLedger() {
             amount: l.amount,
           })),
         };
-        const res = await fetch(`${API_URL}/ledger`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        const url = editEntry ? `${API_URL}/ledger/${editEntry.id}` : `${API_URL}/ledger`;
+        const method = editEntry ? 'PUT' : 'POST';
+        const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
         if (!res.ok) { const e = await res.json(); throw new Error(e.error); }
-        setShowModal(false); loadEntries();
+        closeModal(); loadEntries();
       } catch (e) { setError(e.message); }
       setSaving(false);
       return;
@@ -236,9 +239,11 @@ export default function DailyLedger() {
     setSaving(true); setError('');
     try {
       const payload = { ...form, patient_id: form.patient_id ? form.patient_id : null };
-      const res = await fetch(`${API_URL}/ledger`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      const url = editEntry ? `${API_URL}/ledger/${editEntry.id}` : `${API_URL}/ledger`;
+      const method = editEntry ? 'PUT' : 'POST';
+      const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       if (!res.ok) { const e = await res.json(); throw new Error(e.error); }
-      setShowModal(false); loadEntries();
+      closeModal(); loadEntries();
     } catch (e) { setError(e.message); }
     setSaving(false);
   };
@@ -250,12 +255,50 @@ export default function DailyLedger() {
   };
 
   const openAdd = (type = 'expense') => {
+    setEditEntry(null);
     setForm({ ...EMPTY_ENTRY, entry_date: date, entry_type: type, category: '', patient_id: '' });
     setProductLines([{ ...EMPTY_PRODUCT_LINE }]);
     setError('');
     setPatSearch(''); setPatients([]);
     setShowModal(true);
   };
+
+  const openEdit = (e) => {
+    const isSale = e.category === 'Product Sale';
+    setEditEntry(e);
+    setForm({
+      entry_date: (e.entry_date || date).split('T')[0],
+      entry_type: e.entry_type,
+      category: e.category || '',
+      description: e.description || '',
+      amount: isSale ? '' : (e.amount ?? ''),
+      paid_amount: isSale ? (e.amount_paid ?? '') : '',
+      discount: e.discount ?? '',
+      payment_method: e.payment_method || 'cash',
+      bank_id: e.bank_id || '',
+      reference_number: e.reference_number || '',
+      patient_id: e.patient_id || '',
+    });
+    setProductLines(isSale && Array.isArray(e.product_lines) && e.product_lines.length
+      ? e.product_lines.map(l => ({
+          product_id: l.product_id || '',
+          description: l.description || '',
+          quantity: l.quantity || 1,
+          amount: l.amount ?? '',
+        }))
+      : [{ ...EMPTY_PRODUCT_LINE }]);
+    setError('');
+    setPatSearch(e.patient_id && e.first_name ? `${e.first_name} ${e.last_name}` : '');
+    setPatients([]);
+    setShowModal(true);
+  };
+
+  const closeModal = () => { setShowModal(false); setEditEntry(null); };
+
+  // Entries stay editable while their date is no more than 2 days ahead of today.
+  // The original entry_date itself is never changed by an edit.
+  const editableThrough = (() => { const d = new Date(); d.setDate(d.getDate() + 2); return d.toISOString().split('T')[0]; })();
+  const canEdit = (e) => !e.visit_id && (e.entry_date || '').split('T')[0] <= editableThrough;
 
   const filteredEntries = entries.filter(e => statusFilter === 'all' ? true : e.entry_type === statusFilter);
   // Opening Balance entries seed a starting cash/bank position, not new income/expense —
@@ -436,6 +479,11 @@ export default function DailyLedger() {
                       <button className="btn btn-secondary btn-sm" onClick={() => setDetailEntry(e)} title="Details" style={{ marginRight: 8 }}>
                         Details
                       </button>
+                      {canEdit(e) && (
+                        <button className="btn btn-ghost btn-sm btn-icon" onClick={() => openEdit(e)} title="Edit" style={{ marginRight: 8 }}>
+                          <Edit2 size={13} />
+                        </button>
+                      )}
                       {!e.visit_id && (
                         <button className="btn btn-danger btn-sm btn-icon" onClick={() => handleDelete(e.id)} title="Delete">
                           <Trash2 size={13} />
@@ -455,9 +503,9 @@ export default function DailyLedger() {
           <div className="modal modal-md">
             <div className="modal-header">
               <span className="modal-title">
-                {form.entry_type === 'expense' ? 'Add Expense' : 'Add Income Entry'}
+                {editEntry ? 'Edit Entry' : (form.entry_type === 'expense' ? 'Add Expense' : 'Add Income Entry')}
               </span>
-              <button className="btn btn-sm btn-icon" onClick={() => setShowModal(false)}><X size={16} /></button>
+              <button className="btn btn-sm btn-icon" onClick={closeModal}><X size={16} /></button>
             </div>
             <div className="modal-body">
               <div className="form-grid form-grid-2" style={{ marginBottom: 16 }}>
@@ -487,7 +535,7 @@ export default function DailyLedger() {
                 )}
                 <div className="form-group">
                   <label className="form-label">Date</label>
-                  <input type="date" className="form-input" value={form.entry_date} onChange={e => setForm({ ...form, entry_date: e.target.value })} />
+                  <input type="date" className="form-input" value={form.entry_date} disabled={!!editEntry} title={editEntry ? 'The original entry date is kept when editing' : undefined} onChange={e => setForm({ ...form, entry_date: e.target.value })} />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Category *</label>
@@ -590,9 +638,9 @@ export default function DailyLedger() {
                 {error && <div className="alert alert-error">{error}</div>}
               </div>
               <div style={{ flex: 1 }} />
-              <button className="btn btn-ghost" onClick={() => setShowModal(false)}>Cancel</button>
+              <button className="btn btn-ghost" onClick={closeModal}>Cancel</button>
               <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
-                {saving ? 'Saving...' : 'Add Entry'}
+                {saving ? 'Saving...' : (editEntry ? 'Update Entry' : 'Add Entry')}
               </button>
             </div>
           </div>
