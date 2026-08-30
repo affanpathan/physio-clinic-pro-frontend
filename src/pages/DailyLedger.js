@@ -20,6 +20,7 @@ const EMPTY_ENTRY = {
   description: '',
   amount: '',
   paid_amount: '',
+  discount: '',
   payment_method: 'cash',
   bank_id: '',
   reference_number: '',
@@ -196,8 +197,11 @@ export default function DailyLedger() {
         .filter(l => l.amount > 0 && (l.product_id || l.description.trim()));
       if (!validLines.length) { setError('Add at least one product with a description and amount.'); return; }
       const totalAmount = validLines.reduce((s, l) => s + l.amount, 0);
+      const discountVal = Math.max(0, Number(form.discount) || 0);
+      if (discountVal > totalAmount) { setError('Discount cannot exceed the product total.'); return; }
+      const netCharged = totalAmount - discountVal;
       const paidNow = Number(form.paid_amount) || 0;
-      if (paidNow > totalAmount) { setError('Paid amount cannot exceed the total charged.'); return; }
+      if (paidNow > netCharged) { setError('Paid amount cannot exceed the discounted total.'); return; }
       setSaving(true); setError('');
       try {
         const payload = {
@@ -207,6 +211,7 @@ export default function DailyLedger() {
           description: '',
           amount: totalAmount,
           amount_paid: paidNow,
+          discount: discountVal,
           payment_method: form.payment_method,
           bank_id: form.bank_id,
           reference_number: form.reference_number,
@@ -262,6 +267,7 @@ export default function DailyLedger() {
   const onlineIncome = summaryEntries.filter(e => e.entry_type === 'income' && e.payment_method === 'online').reduce((s, e) => s + Number(e.amount), 0);
   const cashExpenses = summaryEntries.filter(e => e.entry_type === 'expense' && e.payment_method === 'cash').reduce((s, e) => s + Number(e.amount), 0);
   const onlineExpenses = summaryEntries.filter(e => e.entry_type === 'expense' && e.payment_method === 'online').reduce((s, e) => s + Number(e.amount), 0);
+  const totalDiscount = summaryEntries.reduce((s, e) => s + Number(e.discount || 0), 0);
   const net = income - expenses;
   const netCash = cashIncome - cashExpenses;
   const netOnline = onlineIncome - onlineExpenses;
@@ -340,6 +346,11 @@ export default function DailyLedger() {
         </div>
         <div style={{ borderLeft: '1px solid var(--border)', margin: '0 8px' }} />
         <div className="ledger-summary-item">
+          <span className="ledger-summary-label">Total Discount</span>
+          <span className="ledger-summary-value" style={{ color: 'var(--coral)' }}>{fmt(totalDiscount)}</span>
+        </div>
+        <div style={{ borderLeft: '1px solid var(--border)', margin: '0 8px' }} />
+        <div className="ledger-summary-item">
           <span className="ledger-summary-label">Net Balance</span>
           <span className="ledger-summary-value" style={{ color: net >= 0 ? 'var(--green)' : 'var(--coral)' }}>{fmt(net)}</span>
         </div>
@@ -394,6 +405,7 @@ export default function DailyLedger() {
                                 <div key={i}>{pl.product_name}{pl.quantity > 1 ? ` x${pl.quantity}` : ''} <span style={{ color: 'var(--slate-light)' }}>({fmt(pl.amount)})</span></div>
                               ))
                             : e.category}
+                          {Number(e.discount) > 0 && <div style={{ color: 'var(--coral)' }}>Discount: -{fmt(e.discount)}</div>}
                           {SALE_CATEGORIES.includes(e.category) && <span className="badge badge-sale" style={{ marginLeft: 6 }}>Sale</span>}
                         </>
                       )}
@@ -488,6 +500,7 @@ export default function DailyLedger() {
                       category: newCategory,
                       amount: enteringSale ? '' : f.amount,
                       paid_amount: enteringSale ? '' : f.paid_amount,
+                      discount: newCategory === 'Product Sale' && !enteringSale ? f.discount : '',
                     }));
                   }}>
                     <option value="">Select category</option>
@@ -514,15 +527,28 @@ export default function DailyLedger() {
                     <button type="button" className="btn btn-secondary btn-sm" onClick={addProductLine}><Plus size={14} />Add Product</button>
                     <div style={{ marginTop: 12, display: 'flex', gap: 8, alignItems: 'flex-end', flexWrap: 'wrap' }}>
                       <div style={{ flex: '1 1 160px', maxWidth: 220 }}>
+                        <label className="form-label">Discount ({symbol})</label>
+                        <input type="number" step="0.01" min="0" className="form-input" placeholder="0.00" value={form.discount} onChange={e => setForm({ ...form, discount: e.target.value })} />
+                      </div>
+                      <div style={{ flex: '1 1 160px', maxWidth: 220 }}>
                         <label className="form-label">Paid Amount ({symbol})</label>
                         <input type="number" step="0.01" className="form-input" placeholder="0.00 for unpaid / partial" value={form.paid_amount} onChange={e => setForm({ ...form, paid_amount: e.target.value })} />
                       </div>
                     </div>
-                    <div style={{ marginTop: 8, fontSize: 13, color: 'var(--slate-light)' }}>
-                      Total Charged: <strong>{fmt(productLines.reduce((s, l) => s + (Number(l.amount) || 0), 0))}</strong>
-                      {' · '}Total Paid: <strong>{fmt(Number(form.paid_amount) || 0)}</strong>
-                      {' · '}Total Due: <strong>{fmt(productLines.reduce((s, l) => s + (Number(l.amount) || 0), 0) - (Number(form.paid_amount) || 0))}</strong>
-                    </div>
+                    {(() => {
+                      const gross = productLines.reduce((s, l) => s + (Number(l.amount) || 0), 0);
+                      const disc = Math.max(0, Number(form.discount) || 0);
+                      const paid = Number(form.paid_amount) || 0;
+                      return (
+                        <div style={{ marginTop: 8, fontSize: 13, color: 'var(--slate-light)' }}>
+                          Total Charged: <strong>{fmt(gross)}</strong>
+                          {' · '}Discount: <strong>{fmt(disc)}</strong>
+                          {' · '}Net Payable: <strong>{fmt(gross - disc)}</strong>
+                          {' · '}Total Paid: <strong>{fmt(paid)}</strong>
+                          {' · '}Total Due: <strong>{fmt(gross - disc - paid)}</strong>
+                        </div>
+                      );
+                    })()}
                   </div>
                 )}
                 {form.category !== 'Product Sale' && (
@@ -611,6 +637,12 @@ export default function DailyLedger() {
                   <strong>Amount</strong>
                   <div style={{ marginTop: 6 }}>{fmt(detailEntry.amount)}</div>
                 </div>
+                {Number(detailEntry.discount) > 0 && (
+                  <div>
+                    <strong>Discount</strong>
+                    <div style={{ marginTop: 6, color: 'var(--coral)' }}>-{fmt(detailEntry.discount)}</div>
+                  </div>
+                )}
                 <div>
                   <strong>Fee Charged</strong>
                   <div style={{ marginTop: 6 }}>{fmtOrDash(detailEntry.fee_charged)}</div>
