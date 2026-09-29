@@ -243,7 +243,7 @@ const quoteLinkStyle = {
 
 //inline-block
 const pricingLinkStyle = {
-  display: 'none',
+  display: 'inline-block',
   textAlign: 'left',
   marginTop: 20,
   border: 'none',
