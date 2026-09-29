@@ -9,7 +9,7 @@ import { truncateNote } from '../utils/text';
 import { downloadCsvExport } from '../utils/exportCsv';
 const API_URL = process.env.REACT_APP_API_URL || '/api';
 
-const EXPENSE_CATEGORIES = ['Rent', 'Utilities', 'Salaries', 'Equipment', 'Medicines/Supplies', 'Maintenance', 'Marketing', 'Insurance', 'Miscellaneous'];
+const EXPENSE_CATEGORIES = ['Rent', 'Refund', 'Utilities', 'Salaries', 'Equipment', 'Medicines/Supplies', 'Maintenance', 'Marketing', 'Insurance', 'Miscellaneous'];
 const INCOME_CATEGORIES = ['Therapy Fee', 'Consultation', 'Package Sale', 'Product Sale', 'Product Sale Payment', 'Other Income', 'Opening Balance'];
 const SALE_CATEGORIES = ['Product Sale', 'Package Sale'];
 
@@ -130,11 +130,26 @@ export default function DailyLedger() {
       .catch(() => setBanks([]));
   }, []);
 
+  const loadRefundAdvance = async (patientId) => {
+    try {
+      const res = await fetch(`${API_URL}/patient-balance/${patientId}`);
+      if (!res.ok) return;
+      const d = await res.json();
+      setForm(f => f.entry_type === 'expense' && f.category === 'Refund' && String(f.patient_id) === String(patientId)
+        ? { ...f, amount: Number(d.advance_credit) || 0 }
+        : f);
+    } catch (err) { /* ignore */ }
+  };
+
   const selectPatient = async (p) => {
     setForm(f => ({ ...f, patient_id: p.id }));
     setPatSearch(`${p.first_name} ${p.last_name}`);
     setPatients([]);
-    if (form.category === 'Product Sale') return; // patient is record-only for a product sale, not a fee to reconcile
+    if (form.entry_type === 'expense' && form.category === 'Refund') {
+      loadRefundAdvance(p.id);
+      return;
+    }
+    if (form.entry_type !== 'income' || form.category === 'Product Sale') return;
     try {
       const res = await fetch(`${API_URL}/patient-ledger/${p.id}`);
       if (!res.ok) return;
@@ -516,23 +531,21 @@ export default function DailyLedger() {
                     <option value="expense">Expense</option>
                   </select>
                 </div>
-                {form.entry_type === 'income' && (
-                  <div className="form-group" style={{ position: 'relative' }}>
-                    <label className="form-label">Patient (optional)</label>
-                    <input className="form-input" placeholder="Search patient by name..." value={patSearch} onChange={e => { setPatSearch(e.target.value); setForm(f => ({ ...f, patient_id: '' })); }} onKeyDown={onPatSearchKeyDown} />
-                    {patients.length > 0 && (
-                      <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1px solid var(--border)', borderRadius: 7, zIndex: 20, boxShadow: 'var(--shadow-md)', marginTop: 2, maxHeight: 220, overflowY: 'auto' }}>
-                        {patients.map((p, i) => (
-                          <div key={p.id} onClick={() => selectPatient(p)} onMouseEnter={() => setPatHighlight(i)}
-                            style={{ padding: '10px 14px', cursor: 'pointer', borderBottom: '1px solid var(--border)', fontSize: 13.5, background: i === patHighlight ? 'var(--teal-50)' : '#fff' }}>
-                            <div style={{ fontWeight: 600, color: 'var(--teal-900)' }}>{p.first_name} {p.last_name}</div>
-                            <div style={{ fontSize: 12, color: 'var(--slate-light)' }}>{p.patient_id} · {p.phone}</div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
+                <div className="form-group" style={{ position: 'relative' }}>
+                  <label className="form-label">Patient (optional)</label>
+                  <input className="form-input" placeholder="Search patient by name..." value={patSearch} onChange={e => { setPatSearch(e.target.value); setForm(f => ({ ...f, patient_id: '' })); }} onKeyDown={onPatSearchKeyDown} />
+                  {patients.length > 0 && (
+                    <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1px solid var(--border)', borderRadius: 7, zIndex: 20, boxShadow: 'var(--shadow-md)', marginTop: 2, maxHeight: 220, overflowY: 'auto' }}>
+                      {patients.map((p, i) => (
+                        <div key={p.id} onClick={() => selectPatient(p)} onMouseEnter={() => setPatHighlight(i)}
+                          style={{ padding: '10px 14px', cursor: 'pointer', borderBottom: '1px solid var(--border)', fontSize: 13.5, background: i === patHighlight ? 'var(--teal-50)' : '#fff' }}>
+                          <div style={{ fontWeight: 600, color: 'var(--teal-900)' }}>{p.first_name} {p.last_name}</div>
+                          <div style={{ fontSize: 12, color: 'var(--slate-light)' }}>{p.patient_id} · {p.phone}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 <div className="form-group">
                   <label className="form-label">Date</label>
                   <input type="date" className="form-input" value={form.entry_date} disabled={!!editEntry} title={editEntry ? 'The original entry date is kept when editing' : undefined} onChange={e => setForm({ ...form, entry_date: e.target.value })} />
@@ -542,10 +555,17 @@ export default function DailyLedger() {
                   <select className="form-select" value={form.category} onChange={e => {
                     const newCategory = e.target.value;
                     const enteringSale = newCategory === 'Product Sale' && form.category !== 'Product Sale';
+                    const refundDescription = 'Remaining amount returned to the patient.';
                     if (enteringSale) setProductLines([{ ...EMPTY_PRODUCT_LINE }]);
+                    if (form.entry_type === 'expense' && newCategory === 'Refund' && form.patient_id) {
+                      loadRefundAdvance(form.patient_id);
+                    }
                     setForm(f => ({
                       ...f,
                       category: newCategory,
+                      description: form.entry_type === 'expense' && newCategory === 'Refund'
+                        ? refundDescription
+                        : form.category === 'Refund' && f.description === refundDescription ? '' : f.description,
                       amount: enteringSale ? '' : f.amount,
                       paid_amount: enteringSale ? '' : f.paid_amount,
                       discount: newCategory === 'Product Sale' && !enteringSale ? f.discount : '',

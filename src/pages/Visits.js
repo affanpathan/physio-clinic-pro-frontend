@@ -407,25 +407,6 @@ export default function Visits() {
                   <input type="number" className="form-input" value={totalDuration} disabled readOnly />
                 </div>
               </div>
-
-              <div className="form-section">
-                <div className="form-section-title">Clinical Notes</div>
-                <div className="form-grid form-grid-2" style={{ marginBottom: 16 }}>
-                  <div className="form-group">
-                    <label className="form-label">Chief Complaint</label>
-                    <textarea className="form-textarea" style={{ minHeight: 70 }} value={form.chief_complaint} onChange={e => setForm({ ...form, chief_complaint: e.target.value })} />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Treatment Given</label>
-                    <textarea className="form-textarea" style={{ minHeight: 70 }} value={form.treatment_given} onChange={e => setForm({ ...form, treatment_given: e.target.value })} />
-                  </div>
-                </div>
-                <div className="form-group" style={{ marginBottom: 16 }}>
-                  <label className="form-label">Session Notes</label>
-                  <textarea className="form-textarea" value={form.session_notes} onChange={e => setForm({ ...form, session_notes: e.target.value })} />
-                </div>
-              </div>
-
               <div className="form-section">
                 <div className="form-section-title">Payment</div>
                 <div className="form-grid form-grid-3">
@@ -479,6 +460,24 @@ export default function Visits() {
                   </div>
                 )}
               </div>
+              <div className="form-section">
+                <div className="form-section-title">Clinical Notes</div>
+                <div className="form-grid form-grid-2" style={{ marginBottom: 16 }}>
+                  <div className="form-group">
+                    <label className="form-label">Chief Complaint</label>
+                    <textarea className="form-textarea" style={{ minHeight: 70 }} value={form.chief_complaint} onChange={e => setForm({ ...form, chief_complaint: e.target.value })} />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Treatment Given</label>
+                    <textarea className="form-textarea" style={{ minHeight: 70 }} value={form.treatment_given} onChange={e => setForm({ ...form, treatment_given: e.target.value })} />
+                  </div>
+                </div>
+                <div className="form-group" style={{ marginBottom: 16 }}>
+                  <label className="form-label">Session Notes</label>
+                  <textarea className="form-textarea" value={form.session_notes} onChange={e => setForm({ ...form, session_notes: e.target.value })} />
+                </div>
+              </div>
+
             </div>
             <div className="modal-footer" style={{ alignItems: 'center' }}>
               <div style={{ marginRight: 12 }}>
