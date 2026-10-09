@@ -86,6 +86,18 @@ export default function DailyLedger() {
   const [products, setProducts] = useState([]);
   const [productLines, setProductLines] = useState([{ ...EMPTY_PRODUCT_LINE }]);
   const [banks, setBanks] = useState([]);
+  const selectedBank = banks.find(bank => String(bank.id) === String(form.bank_id));
+  const editedBankEffect = editEntry && String(editEntry.bank_id) === String(form.bank_id)
+    ? (editEntry.entry_type === 'income' ? 1 : -1) * (Number(editEntry.amount) || 0)
+    : 0;
+  const selectedBankAvailable = selectedBank ? Number(selectedBank.balance || 0) - editedBankEffect : 0;
+
+  const loadBanks = useCallback(() => {
+    fetch(`${API_URL}/banks?active=true&with_balance=true`)
+      .then(r => r.json())
+      .then(d => setBanks(Array.isArray(d) ? d : []))
+      .catch(() => setBanks([]));
+  }, []);
 
   const loadEntries = useCallback(() => {
     setLoading(true);
@@ -251,6 +263,14 @@ export default function DailyLedger() {
     }
 
     if (!form.description || !form.amount || !form.category) { setError('Description, category, and amount are required.'); return; }
+    if (form.entry_type === 'expense' && form.payment_method === 'online') {
+      if (!form.bank_id) { setError('Select a bank for online expenses.'); return; }
+      if (!selectedBank) { setError('Selected bank is unavailable. Refresh and try again.'); return; }
+      if (Number(form.amount) > selectedBankAvailable) {
+        setError(`Insufficient balance. ${selectedBank.bank_name} only has ${fmt(selectedBankAvailable)} available.`);
+        return;
+      }
+    }
     setSaving(true); setError('');
     try {
       const payload = { ...form, patient_id: form.patient_id ? form.patient_id : null };
@@ -270,6 +290,7 @@ export default function DailyLedger() {
   };
 
   const openAdd = (type = 'expense') => {
+    loadBanks();
     setEditEntry(null);
     setForm({ ...EMPTY_ENTRY, entry_date: date, entry_type: type, category: '', patient_id: '' });
     setProductLines([{ ...EMPTY_PRODUCT_LINE }]);
@@ -279,6 +300,7 @@ export default function DailyLedger() {
   };
 
   const openEdit = (e) => {
+    loadBanks();
     const isSale = e.category === 'Product Sale';
     setEditEntry(e);
     setForm({
@@ -637,8 +659,9 @@ export default function DailyLedger() {
                     <label className="form-label">Bank</label>
                     <select className="form-select" value={form.bank_id || ''} onChange={e => setForm({ ...form, bank_id: e.target.value })}>
                       <option value="">Select bank</option>
-                      {banks.map(b => <option key={b.id} value={b.id}>{b.bank_name}</option>)}
+                      {banks.map(b => <option key={b.id} value={b.id}>{b.bank_name} ({fmt(b.balance)})</option>)}
                     </select>
+                    {selectedBank && <div style={{ marginTop: 4, fontSize: 12, color: 'var(--slate-light)' }}>Available: {fmt(selectedBankAvailable)}</div>}
                   </div>
                 )}
                 <div className="form-group">

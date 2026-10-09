@@ -25,6 +25,7 @@ export default function Dashboard({ navigate }) {
   const { symbol } = useCurrency();
   const fmt = (n) => symbol + Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 0 });
   const [data, setData] = useState(null);
+  const [banks, setBanks] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -32,6 +33,10 @@ export default function Dashboard({ navigate }) {
       .then(r => { if (!r.ok) throw new Error('Failed to load dashboard'); return r.json(); })
       .then(d => { setData(d); setLoading(false); })
       .catch(() => setLoading(false));
+    fetch(`${API_URL}/banks?with_balance=true`)
+      .then(r => r.json())
+      .then(d => setBanks(Array.isArray(d) ? d : []))
+      .catch(() => setBanks([]));
   }, []);
 
   if (loading) return <div className="empty-state"><p>Loading dashboard...</p></div>;
@@ -43,6 +48,13 @@ export default function Dashboard({ navigate }) {
     { label: 'Active Patients', value: data.total_patients, icon: Users, mod: '' },
     { label: 'Monthly Income', value: fmt(data.monthly_income), icon: TrendingUp, mod: '' },
     { label: 'Cash on Hand', value: fmt(data.cash_on_hand), icon: Banknote, mod: 'green' },
+    ...banks.map(bank => ({
+      key: `bank-${bank.id}`,
+      label: `${bank.bank_name} Balance`,
+      value: fmt(bank.balance),
+      icon: Banknote,
+      mod: Number(bank.balance) < 0 ? 'coral' : 'green',
+    })),
     { label: 'Pending Balance', value: fmt(data.pending_balance), icon: AlertCircle, mod: 'coral' },
   ];
 
@@ -55,7 +67,7 @@ export default function Dashboard({ navigate }) {
 
       <div className="stat-grid">
         {stats.map(s => (
-          <div key={s.label} className={`stat-card ${s.mod}`}>
+          <div key={s.key || s.label} className={`stat-card ${s.mod}`}>
             <div className="stat-icon"><s.icon size={48} /></div>
             <div className="stat-label">{s.label}</div>
             <div className="stat-value">{s.value}</div>
