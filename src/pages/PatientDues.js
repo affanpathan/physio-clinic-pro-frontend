@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Search, X, Download } from 'lucide-react';
 import { useCurrency } from '../context/CurrencyContext';
 import { useKeyboardListNav } from '../hooks/useKeyboardListNav';
-import { useEscapeKey } from '../hooks/useEscapeKey';
 import { downloadCsvExport } from '../utils/exportCsv';
 const API_URL = process.env.REACT_APP_API_URL || '/api';
 
@@ -12,7 +11,7 @@ const fmtDate = value => {
   try { return value.toISOString().slice(0, 10); } catch { return String(value); }
 };
 
-export default function PatientDues() {
+export default function PatientDues({ navigate }) {
   const { symbol } = useCurrency();
   const fmt = n => symbol + Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const [dues, setDues] = useState([]);
@@ -20,10 +19,6 @@ export default function PatientDues() {
   const [patients, setPatients] = useState([]);
   const [patSearch, setPatSearch] = useState('');
   const [selectedPatient, setSelectedPatient] = useState(null);
-  const [ledgerModalOpen, setLedgerModalOpen] = useState(false);
-  const [ledgerPatient, setLedgerPatient] = useState(null);
-  const [ledgerData, setLedgerData] = useState(null);
-  const [ledgerLoading, setLedgerLoading] = useState(false);
   const [exportError, setExportError] = useState('');
 
   const loadDues = useCallback(() => {
@@ -71,26 +66,6 @@ export default function PatientDues() {
     } catch (e) { setExportError(e.message); }
   };
 
-  const openLedgerModal = (patient) => {
-    setLedgerPatient(patient);
-    setLedgerModalOpen(true);
-    setLedgerData(null);
-    setLedgerLoading(true);
-    fetch(`${API_URL}/patient-ledger/${patient.id}`)
-      .then(r => r.json())
-      .then(data => { setLedgerData(data); setLedgerLoading(false); })
-      .catch(() => { setLedgerLoading(false); });
-  };
-
-  const closeLedgerModal = () => {
-    setLedgerModalOpen(false);
-    setLedgerPatient(null);
-    setLedgerData(null);
-    setLedgerLoading(false);
-  };
-
-  useEscapeKey(ledgerModalOpen, closeLedgerModal);
-
   // A negative due_balance means the patient has paid ahead — that overpayment is advance credit.
   const owing = dues.filter(row => Number(row.due_balance || 0) > 0);
   const advances = dues.filter(row => Number(row.due_balance || 0) < 0);
@@ -119,7 +94,7 @@ export default function PatientDues() {
               <td data-label="Total Paid" style={{ fontVariantNumeric: 'tabular-nums' }}>{fmt(row.total_paid)}</td>
               <td data-label={balanceLabel} className={balanceClass} style={{ fontVariantNumeric: 'tabular-nums' }}>{fmt(balanceValue(row))}</td>
               <td data-label="Action">
-                <button className="btn btn-sm btn-secondary" onClick={() => openLedgerModal(row)}>
+                <button className="btn btn-sm btn-secondary" onClick={() => navigate('patient-ledger', { ...row, patient_id: row.patient_code })}>
                   View Ledger
                 </button>
               </td>
@@ -214,62 +189,6 @@ export default function PatientDues() {
         </div>
       )}
 
-      {ledgerModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal modal-lg">
-            <div className="modal-header">
-              <span className="modal-title">Patient Ledger - {ledgerPatient?.first_name} {ledgerPatient?.last_name}</span>
-              <button className="btn btn-sm btn-icon" onClick={closeLedgerModal}><X size={16} /></button>
-            </div>
-            <div className="modal-body">
-              {ledgerLoading ? (
-                <div className="empty-state"><p>Loading ledger details...</p></div>
-              ) : ledgerData ? (
-                <>
-                  <div className="form-grid form-grid-2" style={{ marginBottom: 20 }}>
-                    <div style={{ padding: 14, border: '1px solid var(--border)', borderRadius: 12 }}>
-                      <div style={{ fontSize: 12, color: 'var(--slate-light)', marginBottom: 8 }}>Total Visit History</div>
-                      <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--teal-900)' }}>{ledgerData.summary?.total_visits ?? 0}</div>
-                    </div>
-                    <div style={{ padding: 14, border: '1px solid var(--border)', borderRadius: 12 }}>
-                      <div style={{ fontSize: 12, color: 'var(--slate-light)', marginBottom: 8 }}>Total Payments</div>
-                      <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--green)' }}>{fmt(ledgerData.summary?.total_paid ?? 0)}</div>
-                    </div>
-                    <div style={{ padding: 14, border: '1px solid var(--border)', borderRadius: 12 }}>
-                      <div style={{ fontSize: 12, color: 'var(--slate-light)', marginBottom: 8 }}>Total Charged</div>
-                      <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--slate)' }}>{fmt(ledgerData.summary?.total_charged ?? 0)}</div>
-                    </div>
-                    <div style={{ padding: 14, border: '1px solid var(--border)', borderRadius: 12 }}>
-                      <div style={{ fontSize: 12, color: 'var(--slate-light)', marginBottom: 8 }}>Balance Due</div>
-                      <div style={{ fontSize: 24, fontWeight: 700, color: Number(ledgerData.summary?.balance_due) > 0 ? 'var(--coral)' : 'var(--green)' }}>
-                        {fmt(ledgerData.summary?.balance_due ?? 0)}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                    <div style={{ flex: 1, minWidth: 240, padding: 14, border: '1px solid var(--border)', borderRadius: 12 }}>
-                      <div style={{ fontSize: 12, color: 'var(--slate-light)', marginBottom: 8 }}>Visit Records</div>
-                      <div style={{ fontSize: 18, fontWeight: 700 }}>{ledgerData.visits.length}</div>
-                      <div style={{ marginTop: 6, fontSize: 13, color: 'var(--slate)' }}>{ledgerData.visits.length} visit{ledgerData.visits.length === 1 ? '' : 's'} found</div>
-                    </div>
-                    <div style={{ flex: 1, minWidth: 240, padding: 14, border: '1px solid var(--border)', borderRadius: 12 }}>
-                      <div style={{ fontSize: 12, color: 'var(--slate-light)', marginBottom: 8 }}>Payment Records</div>
-                      <div style={{ fontSize: 18, fontWeight: 700 }}>{ledgerData.payments.length}</div>
-                      <div style={{ marginTop: 6, fontSize: 13, color: 'var(--slate)' }}>{ledgerData.payments.length} payment{ledgerData.payments.length === 1 ? '' : 's'} found</div>
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <div className="empty-state"><p>Unable to load ledger details.</p></div>
-              )}
-            </div>
-            <div className="modal-footer">
-              <button className="btn btn-ghost" onClick={closeLedgerModal}>Close</button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

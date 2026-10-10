@@ -405,7 +405,7 @@ export default function App() {
           {page === 'appointments' && <Appointments />}
           {page === 'daily-ledger' && <DailyLedger />}
           {page === 'patient-ledger' && <PatientLedger selectedPatient={selectedPatient} setSelectedPatient={setSelectedPatient} />}
-          {page === 'patient-dues' && <PatientDues />}
+          {page === 'patient-dues' && <PatientDues navigate={navigate} />}
           {page === 'clinic-master' && adminAuthorized && <ClinicMaster />}
           {page === 'clinic-users' && adminAuthorized && <ClinicUsers />}
           {page === 'therapists' && <Therapists clinicId={clinicId} />}
