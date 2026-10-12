@@ -383,6 +383,17 @@ export default function Visits() {
                           style={{ flex: 2 }}
                           value={row.therapy_type}
                           ref={element => { therapyTypeSelects.current[idx] = element; }}
+                          onKeyDown={e => {
+                            if (e.key.length !== 1 || e.ctrlKey || e.metaKey || e.altKey) return;
+                            const key = e.key.toLowerCase();
+                            const matches = THERAPY_TYPES.filter(type =>
+                              (type === row.therapy_type || !otherSelected.includes(type)) && type.toLowerCase().startsWith(key)
+                            );
+                            if (!matches.length) return;
+                            e.preventDefault();
+                            const currentMatch = matches.indexOf(row.therapy_type);
+                            updateTherapyRow(idx, { therapy_type: matches[(currentMatch + 1) % matches.length] });
+                          }}
                           onChange={e => updateTherapyRow(idx, { therapy_type: e.target.value })}
                         >
                           <option value="">Select therapy type</option>
