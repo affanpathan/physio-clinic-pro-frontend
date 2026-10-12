@@ -360,7 +360,7 @@ export default function Visits() {
                 </div>
                 <div className="form-group">
                   <label className="form-label">Visit Date *</label>
-                  <input type="date" className="form-input" value={form.visit_date} onChange={e => setForm({ ...form, visit_date: e.target.value })} />
+                  <input type="date" className="form-input" value={form.visit_date} disabled={!!editVisit} title={editVisit ? 'Visit date cannot be changed after creation' : undefined} onChange={e => setForm({ ...form, visit_date: e.target.value })} />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Visit Time</label>
