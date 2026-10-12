@@ -191,6 +191,11 @@ export default function Visits() {
   const safeVisits = Array.isArray(visits) ? visits : [];
   const totalIncome = safeVisits.reduce((s, v) => s + Number(v.amount_paid || 0), 0);
   const totalCharged = safeVisits.reduce((s, v) => s + Number(v.fee_charged || 0), 0);
+  const totalPending = safeVisits.reduce((sum, v) => (
+    v.payment_status === 'paid'
+      ? sum
+      : sum + Math.max(0, Number(v.fee_charged || 0) - Number(v.amount_paid || 0))
+  ), 0);
 
   // Mirrors resolvePaymentStatus in backend/index.js — the server is authoritative, this only
   // previews the badge before saving. An advance already on file marks the visit paid.
@@ -253,7 +258,7 @@ export default function Visits() {
           </div>
           <div className="ledger-summary-item">
             <span className="ledger-summary-label">Pending</span>
-            <span className="ledger-summary-value" style={{ color: 'var(--coral)' }}>{fmt(totalCharged - totalIncome)}</span>
+            <span className="ledger-summary-value" style={{ color: 'var(--coral)' }}>{fmt(totalPending)}</span>
           </div>
         </div>
       )}
