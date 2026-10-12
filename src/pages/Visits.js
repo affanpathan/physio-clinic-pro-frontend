@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Plus, X, ChevronLeft, ChevronRight, Edit2, Trash2, Download } from 'lucide-react';
 import { useCurrency } from '../context/CurrencyContext';
 import { useKeyboardListNav } from '../hooks/useKeyboardListNav';
@@ -30,6 +30,8 @@ export default function Visits() {
   const [editVisit, setEditVisit] = useState(null);
   const [paymentLocked, setPaymentLocked] = useState(false);
   const [form, setForm] = useState(EMPTY_VISIT);
+  const therapyTypeSelects = useRef([]);
+  const focusNewTherapyType = useRef(false);
   const [patSearch, setPatSearch] = useState('');
   const [priorBalance, setPriorBalance] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -84,6 +86,12 @@ export default function Visits() {
       .catch(() => setBanks([]));
   }, []);
 
+  useEffect(() => {
+    if (!focusNewTherapyType.current) return;
+    therapyTypeSelects.current[form.therapies.length - 1]?.focus();
+    focusNewTherapyType.current = false;
+  }, [form.therapies.length]);
+
   const shiftDate = (days) => {
     const d = new Date(date); d.setDate(d.getDate() + days);
     setDate(d.toISOString().split('T')[0]);
@@ -123,7 +131,10 @@ export default function Visits() {
     setShowModal(true);
   };
 
-  const addTherapyRow = () => setForm(f => ({ ...f, therapies: [...f.therapies, { therapy_type: '', duration_minutes: 15 }] }));
+  const addTherapyRow = () => {
+    focusNewTherapyType.current = true;
+    setForm(f => ({ ...f, therapies: [...f.therapies, { therapy_type: '', duration_minutes: 15 }] }));
+  };
   const removeTherapyRow = (idx) => setForm(f => ({ ...f, therapies: f.therapies.length > 1 ? f.therapies.filter((_, i) => i !== idx) : f.therapies }));
   const updateTherapyRow = (idx, patch) => setForm(f => ({ ...f, therapies: f.therapies.map((r, i) => i === idx ? { ...r, ...patch } : r) }));
   const totalDuration = (form.therapies || []).reduce((s, t) => s + (Number(t.duration_minutes) || 0), 0);
@@ -371,6 +382,7 @@ export default function Visits() {
                           className="form-select"
                           style={{ flex: 2 }}
                           value={row.therapy_type}
+                          ref={element => { therapyTypeSelects.current[idx] = element; }}
                           onChange={e => updateTherapyRow(idx, { therapy_type: e.target.value })}
                         >
                           <option value="">Select therapy type</option>
