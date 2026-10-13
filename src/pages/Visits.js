@@ -28,7 +28,6 @@ export default function Visits() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editVisit, setEditVisit] = useState(null);
-  const [paymentLocked, setPaymentLocked] = useState(false);
   const [form, setForm] = useState(EMPTY_VISIT);
   const therapyTypeSelects = useRef([]);
   const focusNewTherapyType = useRef(false);
@@ -118,13 +117,12 @@ export default function Visits() {
     } catch (err) { /* balance is informational — never block the form */ }
   }, []);
 
-  const openAdd = () => { setForm({ ...EMPTY_VISIT, visit_date: date, therapies: [{ therapy_type: '', duration_minutes: 15 }] }); setEditVisit(null); setPaymentLocked(false); setError(''); setPatSearch(''); setPriorBalance(null); setShowModal(true); };
+  const openAdd = () => { setForm({ ...EMPTY_VISIT, visit_date: date, therapies: [{ therapy_type: '', duration_minutes: 15 }] }); setEditVisit(null); setError(''); setPatSearch(''); setPriorBalance(null); setShowModal(true); };
   const openEdit = (v) => {
     const therapies = getTherapyRows(v);
     const visitDate = v.visit_date?.split('T')[0] || date;
     setForm({ ...v, visit_date: visitDate, therapies: therapies.length ? therapies : [{ therapy_type: '', duration_minutes: 15 }] });
     setEditVisit(v);
-    setPaymentLocked(visitDate !== new Date().toISOString().split('T')[0]);
     setPatSearch(`${v.first_name} ${v.last_name}`);
     setError('');
     loadPriorBalance(v.patient_id, v.id);
@@ -360,7 +358,7 @@ export default function Visits() {
                 </div>
                 <div className="form-group">
                   <label className="form-label">Visit Date *</label>
-                  <input type="date" className="form-input" value={form.visit_date} disabled={!!editVisit} title={editVisit ? 'Visit date cannot be changed after creation' : undefined} onChange={e => setForm({ ...form, visit_date: e.target.value })} />
+                  <input type="date" className="form-input" value={form.visit_date} onChange={e => setForm({ ...form, visit_date: e.target.value })} />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Visit Time</label>
@@ -449,8 +447,6 @@ export default function Visits() {
                       className="form-input"
                       value={form.amount_paid}
                       onChange={e => setForm({ ...form, amount_paid: e.target.value })}
-                      disabled={paymentLocked}
-                      title={paymentLocked ? 'Paid amount can only be edited on the day of the visit' : undefined}
                     />
                   </div>
                   <div className="form-group">
