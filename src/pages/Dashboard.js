@@ -43,6 +43,7 @@ export default function Dashboard({ navigate }) {
   if (!data) return <div className="empty-state"><p>Could not load dashboard. Check server connection.</p></div>;
 
   const totalBankBalance = banks.reduce((total, bank) => total + (Number(bank.balance) || 0), 0);
+  const totalCashAndBank = Number(data.cash_on_hand || 0) + totalBankBalance;
   const stats = [
     { label: "Today's Visits", value: data.today_visits, icon: Calendar, mod: '' },
     { label: "Today's Income", value: fmt(data.today_income), icon: Banknote, mod: 'green' },
@@ -50,6 +51,7 @@ export default function Dashboard({ navigate }) {
     { label: 'Monthly Income', value: fmt(data.monthly_income), icon: TrendingUp, mod: '' },
     { label: 'Cash on Hand', value: fmt(data.cash_on_hand), icon: Banknote, mod: 'green' },
     { label: 'Total Bank Balance', value: fmt(totalBankBalance), icon: Banknote, mod: totalBankBalance < 0 ? 'coral' : 'green' },
+    { label: 'Cash + Bank Total', value: fmt(totalCashAndBank), icon: Banknote, mod: totalCashAndBank < 0 ? 'coral' : 'green' },
     ...banks.map(bank => ({
       key: `bank-${bank.id}`,
       label: `${bank.bank_name} Balance`,

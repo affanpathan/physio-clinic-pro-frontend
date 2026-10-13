@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Search, X, CreditCard, Calendar, FileText, Download } from 'lucide-react';
+import { Search, X, CreditCard, Calendar, Package, Download } from 'lucide-react';
 import { useCurrency } from '../context/CurrencyContext';
 import { useKeyboardListNav } from '../hooks/useKeyboardListNav';
 import { getTherapyRows } from '../utils/therapy';
+import { getProductRows } from '../utils/products';
 import { downloadCsvExport } from '../utils/exportCsv';
 const API_URL = process.env.REACT_APP_API_URL || '/api';
 
@@ -187,9 +188,12 @@ export default function PatientLedger({ selectedPatient, setSelectedPatient }) {
               <button className={`tab ${tab === 'payments' ? 'active' : ''}`} onClick={() => setTab('payments')}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><CreditCard size={13} />Payments ({ledger.payments.length})</span>
               </button>
+              <button className={`tab ${tab === 'product-sales' ? 'active' : ''}`} onClick={() => setTab('product-sales')}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><Package size={13} />Product Sale ({ledger.product_sales?.length || 0})</span>
+              </button>
             </div>
             <button className="btn btn-secondary" onClick={handleExport}>
-              <Download size={15} />Export {tab === 'visits' ? 'Visits' : 'Payments'}
+              <Download size={15} />Export {tab === 'visits' ? 'Visits' : tab === 'payments' ? 'Payments' : 'Product Sales'}
             </button>
           </div>
 
@@ -279,6 +283,53 @@ export default function PatientLedger({ selectedPatient, setSelectedPatient }) {
                           <td data-label="Method"><span className={`badge badge-${p.payment_method}`}>{p.payment_method}</span></td>
                           <td data-label="Reference" style={{ fontSize: 12.5, color: 'var(--slate-light)' }}>{p.reference_number || '—'}</td>
                           <td data-label="Notes" style={{ fontSize: 12.5, color: 'var(--slate)' }}>{p.notes || '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+
+          {tab === 'product-sales' && (
+            <div className="card">
+              {!ledger.product_sales?.length ? (
+                <div className="empty-state"><p>No product sales recorded for this patient.</p></div>
+              ) : (
+                <div className="table-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>#</th>
+                        <th>Date</th>
+                        <th>Products</th>
+                        <th>Total Charged</th>
+                        <th>Discount</th>
+                        <th>Paid</th>
+                        <th>Method</th>
+                        <th>Reference</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {ledger.product_sales.map((sale, i) => (
+                        <tr key={sale.id}>
+                          <td data-label="#" style={{ color: 'var(--slate-light)', fontSize: 12 }}>{i + 1}</td>
+                          <td data-label="Date" style={{ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{displayDate(sale.sale_date)}</td>
+                          <td data-label="Products" style={{ fontSize: 12.5 }}>
+                            {getProductRows(sale).length
+                              ? getProductRows(sale).map((product, index) => (
+                                  <div key={`${product.product_id || product.product_name}-${index}`}>
+                                    {product.product_name}{product.quantity > 1 ? ` x${product.quantity}` : ''} ({fmt(product.amount)})
+                                  </div>
+                                ))
+                              : sale.description || '—'}
+                          </td>
+                          <td data-label="Total Charged" style={{ fontVariantNumeric: 'tabular-nums' }}>{fmt(sale.total_charged)}</td>
+                          <td data-label="Discount" style={{ fontVariantNumeric: 'tabular-nums' }}>{fmt(sale.discount)}</td>
+                          <td data-label="Paid" className="amount-income">{fmt(sale.amount_paid)}</td>
+                          <td data-label="Method"><span className={`badge badge-${sale.payment_method}`}>{sale.payment_method}</span></td>
+                          <td data-label="Reference" style={{ fontSize: 12.5, color: 'var(--slate-light)' }}>{sale.reference_number || '—'}</td>
                         </tr>
                       ))}
                     </tbody>
