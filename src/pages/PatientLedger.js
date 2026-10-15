@@ -317,7 +317,9 @@ export default function PatientLedger({ selectedPatient, setSelectedPatient }) {
                           <td data-label="#" style={{ color: 'var(--slate-light)', fontSize: 12 }}>{i + 1}</td>
                           <td data-label="Date" style={{ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{displayDate(sale.sale_date)}</td>
                           <td data-label="Products" style={{ fontSize: 12.5 }}>
-                            {getProductRows(sale).length
+                            {sale.category === 'Product Sale Payment'
+                              ? sale.description || sale.category
+                              : getProductRows(sale).length
                               ? getProductRows(sale).map((product, index) => (
                                   <div key={`${product.product_id || product.product_name}-${index}`}>
                                     {product.product_name}{product.quantity > 1 ? ` x${product.quantity}` : ''} ({fmt(product.amount)})
@@ -325,8 +327,8 @@ export default function PatientLedger({ selectedPatient, setSelectedPatient }) {
                                 ))
                               : sale.description || '—'}
                           </td>
-                          <td data-label="Total Charged" style={{ fontVariantNumeric: 'tabular-nums' }}>{fmt(sale.total_charged)}</td>
-                          <td data-label="Discount" style={{ fontVariantNumeric: 'tabular-nums' }}>{fmt(sale.discount)}</td>
+                          <td data-label="Total Charged" style={{ fontVariantNumeric: 'tabular-nums' }}>{sale.category === 'Product Sale Payment' ? '—' : fmt(sale.total_charged)}</td>
+                          <td data-label="Discount" style={{ fontVariantNumeric: 'tabular-nums' }}>{sale.category === 'Product Sale Payment' ? '—' : fmt(sale.discount)}</td>
                           <td data-label="Paid" className="amount-income">{fmt(sale.amount_paid)}</td>
                           <td data-label="Method"><span className={`badge badge-${sale.payment_method}`}>{sale.payment_method}</span></td>
                           <td data-label="Reference" style={{ fontSize: 12.5, color: 'var(--slate-light)' }}>{sale.reference_number || '—'}</td>
