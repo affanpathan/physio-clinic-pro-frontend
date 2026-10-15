@@ -585,9 +585,11 @@ export default function DailyLedger() {
                     setForm(f => ({
                       ...f,
                       category: newCategory,
-                      description: form.entry_type === 'expense' && newCategory === 'Refund'
-                        ? refundDescription
-                        : form.category === 'Refund' && f.description === refundDescription ? '' : f.description,
+                      description: form.entry_type === 'income'
+                        ? newCategory
+                        : newCategory === 'Refund'
+                          ? refundDescription
+                          : form.category === 'Refund' && f.description === refundDescription ? '' : f.description,
                       amount: enteringSale ? '' : f.amount,
                       paid_amount: enteringSale ? '' : f.paid_amount,
                       discount: newCategory === 'Product Sale' && !enteringSale ? f.discount : '',
