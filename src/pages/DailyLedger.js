@@ -63,9 +63,9 @@ export default function DailyLedger() {
   const { symbol } = useCurrency();
   const fmt = n => symbol + Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const fmtOrDash = n => (n === null || n === undefined || n === '') ? '—' : fmt(n);
-  const dueAmount = (fee, paid) => {
+  const dueAmount = (fee, paid, advanceApplied = 0) => {
     if ((fee === null || fee === undefined || fee === '') && (paid === null || paid === undefined || paid === '')) return '—';
-    return fmt((Number(fee) || 0) - (Number(paid) || 0));
+    return fmt((Number(fee) || 0) - (Number(paid) || 0) - (Number(advanceApplied) || 0));
   };
   const [entries, setEntries] = useState([]);
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -83,6 +83,7 @@ export default function DailyLedger() {
   const [detailEntry, setDetailEntry] = useState(null);
   const [patients, setPatients] = useState([]);
   const [patSearch, setPatSearch] = useState('');
+  const [patientBalanceDue, setPatientBalanceDue] = useState(null);
   const [products, setProducts] = useState([]);
   const [productLines, setProductLines] = useState([{ ...EMPTY_PRODUCT_LINE }]);
   const [banks, setBanks] = useState([]);
@@ -155,19 +156,23 @@ export default function DailyLedger() {
 
   const selectPatient = async (p) => {
     setForm(f => ({ ...f, patient_id: p.id }));
+    setPatientBalanceDue(null);
     setPatSearch(`${p.first_name} ${p.last_name}`);
     setPatients([]);
     if (form.entry_type === 'expense' && form.category === 'Refund') {
       loadRefundAdvance(p.id);
       return;
     }
-    if (form.entry_type !== 'income' || form.category === 'Product Sale') return;
+    if (form.entry_type !== 'income') return;
     try {
       const res = await fetch(`${API_URL}/patient-ledger/${p.id}`);
       if (!res.ok) return;
       const d = await res.json();
       const bal = d.summary?.balance_due ?? 0;
-      setForm(f => ({ ...f, amount: Number(bal) }));
+      setPatientBalanceDue(Number(bal) || 0);
+      if (form.category !== 'Product Sale') {
+        setForm(f => ({ ...f, amount: Number(bal) }));
+      }
     } catch (err) { /* ignore */ }
   };
 
@@ -293,6 +298,7 @@ export default function DailyLedger() {
     loadBanks();
     setEditEntry(null);
     setForm({ ...EMPTY_ENTRY, entry_date: date, entry_type: type, category: '', patient_id: '' });
+    setPatientBalanceDue(null);
     setProductLines([{ ...EMPTY_PRODUCT_LINE }]);
     setError('');
     setPatSearch(''); setPatients([]);
@@ -511,7 +517,7 @@ export default function DailyLedger() {
                         {e.entry_type === 'income' ? '+' : '-'}{fmt(e.amount)}
                       </span>
                     </td>
-                    <td data-label="Due Amount" style={{ fontVariantNumeric: 'tabular-nums' }}>{dueAmount(e.fee_charged, e.amount_paid)}</td>
+                    <td data-label="Due Amount" style={{ fontVariantNumeric: 'tabular-nums' }}>{dueAmount(e.fee_charged, e.amount_paid, e.advance_applied)}</td>
                     <td data-label="Action">
                       <button className="btn btn-secondary btn-sm" onClick={() => setDetailEntry(e)} title="Details" style={{ marginRight: 8 }}>
                         Details
@@ -555,7 +561,7 @@ export default function DailyLedger() {
                 </div>
                 <div className="form-group" style={{ position: 'relative' }}>
                   <label className="form-label">Patient (optional)</label>
-                  <input className="form-input" placeholder="Search patient by name..." value={patSearch} onChange={e => { setPatSearch(e.target.value); setForm(f => ({ ...f, patient_id: '' })); }} onKeyDown={onPatSearchKeyDown} />
+                  <input className="form-input" placeholder="Search patient by name..." value={patSearch} onChange={e => { setPatSearch(e.target.value); setPatientBalanceDue(null); setForm(f => ({ ...f, patient_id: '' })); }} onKeyDown={onPatSearchKeyDown} />
                   {patients.length > 0 && (
                     <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1px solid var(--border)', borderRadius: 7, zIndex: 20, boxShadow: 'var(--shadow-md)', marginTop: 2, maxHeight: 220, overflowY: 'auto' }}>
                       {patients.map((p, i) => (
@@ -565,6 +571,11 @@ export default function DailyLedger() {
                           <div style={{ fontSize: 12, color: 'var(--slate-light)' }}>{p.patient_id} · {p.phone}</div>
                         </div>
                       ))}
+                    </div>
+                  )}
+                  {form.entry_type === 'income' && form.patient_id && patientBalanceDue !== null && (
+                    <div style={{ marginTop: 4, fontSize: 12, color: 'var(--slate-light)' }}>
+                      Patient Balance Due: <strong style={{ color: patientBalanceDue < 0 ? '#15803d' : patientBalanceDue > 0 ? '#dc2626' : 'inherit' }}>{fmt(patientBalanceDue)}</strong>
                     </div>
                   )}
                 </div>
@@ -631,13 +642,36 @@ export default function DailyLedger() {
                       const gross = productLines.reduce((s, l) => s + (Number(l.amount) || 0), 0);
                       const disc = Math.max(0, Number(form.discount) || 0);
                       const paid = Number(form.paid_amount) || 0;
+                      const netCharged = Math.max(0, gross - disc);
+                      const saleDue = Math.max(0, netCharged - paid);
+                      const advanceCredit = Math.max(0, -(Number(patientBalanceDue) || 0));
+                      const remainingCredit = Math.max(0, advanceCredit - saleDue);
+                      const shortfall = Math.max(0, saleDue - advanceCredit);
+                      const paidStatus = netCharged <= 0
+                        ? 'pending'
+                        : shortfall === 0
+                          ? 'paid'
+                          : paid > 0 || advanceCredit > 0 ? 'partial' : 'pending';
                       return (
                         <div style={{ marginTop: 8, fontSize: 13, color: 'var(--slate-light)' }}>
-                          Total Charged: <strong>{fmt(gross)}</strong>
-                          {' · '}Discount: <strong>{fmt(disc)}</strong>
-                          {' · '}Net Payable: <strong>{fmt(gross - disc)}</strong>
-                          {' · '}Total Paid: <strong>{fmt(paid)}</strong>
-                          {' · '}Total Due: <strong>{fmt(gross - disc - paid)}</strong>
+                          <div>
+                            Total Charged: <strong>{fmt(gross)}</strong>
+                            {' · '}Discount: <strong>{fmt(disc)}</strong>
+                            {' · '}Net Payable: <strong>{fmt(netCharged)}</strong>
+                            {' · '}Total Paid: <strong>{fmt(paid)}</strong>
+                            {' · '}Total Due: <strong>{fmt(Math.max(0, (Number(patientBalanceDue) || 0) + saleDue))}</strong>
+                            {' · '}Status: <span className={`badge badge-${paidStatus}`}>{paidStatus}</span>
+                          </div>
+                          {form.patient_id && advanceCredit > 0 && netCharged > 0 && (
+                            <div style={{ marginTop: 4 }}>
+                              <span className="amount-income">
+                                Advance on file: <strong>{fmt(advanceCredit)}</strong>
+                                {shortfall > 0
+                                  ? <> — covers part of this sale. Shortfall: <strong>{fmt(shortfall)}</strong>.</>
+                                  : <> — this sale is covered. Remaining after this sale: <strong>{fmt(remainingCredit)}</strong>.</>}
+                              </span>
+                            </div>
+                          )}
                         </div>
                       );
                     })()}
@@ -744,9 +778,15 @@ export default function DailyLedger() {
                   <strong>Amount Paid</strong>
                   <div style={{ marginTop: 6 }}>{fmtOrDash(detailEntry.amount_paid)}</div>
                 </div>
+                {Number(detailEntry.advance_applied) > 0 && (
+                  <div>
+                    <strong>Advance Applied</strong>
+                    <div style={{ marginTop: 6 }}>{fmt(detailEntry.advance_applied)}</div>
+                  </div>
+                )}
                 <div>
                   <strong>Due Amount</strong>
-                  <div style={{ marginTop: 6 }}>{dueAmount(detailEntry.fee_charged, detailEntry.amount_paid)}</div>
+                  <div style={{ marginTop: 6 }}>{dueAmount(detailEntry.fee_charged, detailEntry.amount_paid, detailEntry.advance_applied)}</div>
                 </div>
                 <div>
                   <strong>Payment Method</strong>

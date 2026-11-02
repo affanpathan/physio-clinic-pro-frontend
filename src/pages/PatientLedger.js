@@ -307,6 +307,7 @@ export default function PatientLedger({ selectedPatient, setSelectedPatient }) {
                         <th>Total Charged</th>
                         <th>Discount</th>
                         <th>Paid</th>
+                        <th>Advance Applied</th>
                         <th>Method</th>
                         <th>Reference</th>
                       </tr>
@@ -330,6 +331,7 @@ export default function PatientLedger({ selectedPatient, setSelectedPatient }) {
                           <td data-label="Total Charged" style={{ fontVariantNumeric: 'tabular-nums' }}>{sale.category === 'Product Sale Payment' ? '—' : fmt(sale.total_charged)}</td>
                           <td data-label="Discount" style={{ fontVariantNumeric: 'tabular-nums' }}>{sale.category === 'Product Sale Payment' ? '—' : fmt(sale.discount)}</td>
                           <td data-label="Paid" className="amount-income">{fmt(sale.amount_paid)}</td>
+                          <td data-label="Advance Applied" className="amount-income">{fmt(sale.advance_applied)}</td>
                           <td data-label="Method"><span className={`badge badge-${sale.payment_method}`}>{sale.payment_method}</span></td>
                           <td data-label="Reference" style={{ fontSize: 12.5, color: 'var(--slate-light)' }}>{sale.reference_number || '—'}</td>
                         </tr>
