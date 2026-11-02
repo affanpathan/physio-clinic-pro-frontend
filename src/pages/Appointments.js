@@ -4,7 +4,7 @@ import { useKeyboardListNav } from '../hooks/useKeyboardListNav';
 import { useEscapeKey } from '../hooks/useEscapeKey';
 const API_URL = process.env.REACT_APP_API_URL || '/api';
 
-const THERAPY_TYPES = ['Manual Therapy', 'Exercise Therapy', 'Electrotherapy', 'Ultrasound', 'TENS', 'Heat Therapy', 'Cold Therapy', 'Dry Needling', 'Cupping', 'Hydrotherapy', 'Taping', 'Post-surgical Rehab', 'Sports Rehab', 'Other'];
+const THERAPY_TYPES = ['Bio Lite', 'Premium Plus', 'Manual Therapy', 'Exercise Therapy', 'Electrotherapy', 'Ultrasound', 'TENS', 'Heat Therapy', 'Cold Therapy', 'Dry Needling', 'Cupping', 'Hydrotherapy', 'Taping', 'Post-surgical Rehab', 'Sports Rehab', 'Other'];
 
 const timeSlots = Array.from({ length: 36 }, (_, i) => {
   const hour = 6 + Math.floor(i / 2);
@@ -186,7 +186,13 @@ export default function Appointments() {
               notes: bookingForm.notes,
             }),
           });
-      if (!response.ok) throw new Error(editingAppt ? 'Failed to update appointment' : 'Failed to create appointment');
+      const savedAppointment = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(savedAppointment?.error || (editingAppt ? 'Failed to update appointment' : 'Failed to create appointment'));
+      }
+      if (!savedAppointment?.id) {
+        throw new Error('The server did not confirm that the appointment was saved.');
+      }
       const [start, end] = getDateRange();
       loadAppointments(start, end);
       closeBookingModal();

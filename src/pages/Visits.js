@@ -21,6 +21,9 @@ export default function Visits() {
   const { symbol } = useCurrency();
   const fmt = n => symbol + Number(n || 0).toLocaleString('en-IN');
   const [visits, setVisits] = useState([]);
+  const [todayAppointments, setTodayAppointments] = useState([]);
+  const [todayAppointmentError, setTodayAppointmentError] = useState('');
+  const [selectedAppointmentId, setSelectedAppointmentId] = useState('');
   const [patients, setPatients] = useState([]);
   const [therapists, setTherapists] = useState([]);
   const [banks, setBanks] = useState([]);
@@ -59,6 +62,28 @@ export default function Visits() {
   }, [date, viewMode]);
 
   useEffect(() => { loadVisits(); }, [loadVisits]);
+
+  const loadTodayAppointments = useCallback(() => {
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    setTodayAppointmentError('');
+    fetch(`${API_URL}/appointments?start_date=${today}&end_date=${today}`)
+      .then(async response => {
+        const data = await response.json().catch(() => null);
+        if (!response.ok) throw new Error(data?.error || 'Could not load today\'s appointments.');
+        if (!Array.isArray(data)) throw new Error('Unexpected response while loading appointments.');
+        setTodayAppointments(data.filter(appointment => {
+          const status = String(appointment.status || 'scheduled').trim().toLowerCase();
+          return !['completed', 'cancelled', 'no-show'].includes(status);
+        }));
+      })
+      .catch(error => {
+        setTodayAppointments([]);
+        setTodayAppointmentError(error.message);
+      });
+  }, []);
+
+  useEffect(() => { loadTodayAppointments(); }, [loadTodayAppointments]);
 
   useEffect(() => {
     if (patSearch.length >= 2) {
@@ -117,12 +142,13 @@ export default function Visits() {
     } catch (err) { /* balance is informational — never block the form */ }
   }, []);
 
-  const openAdd = () => { setForm({ ...EMPTY_VISIT, visit_date: date, therapies: [{ therapy_type: '', duration_minutes: 15 }] }); setEditVisit(null); setError(''); setPatSearch(''); setPriorBalance(null); setShowModal(true); };
+  const openAdd = () => { setForm({ ...EMPTY_VISIT, visit_date: date, therapies: [{ therapy_type: '', duration_minutes: 15 }] }); setEditVisit(null); setSelectedAppointmentId(''); setError(''); setPatSearch(''); setPriorBalance(null); loadTodayAppointments(); setShowModal(true); };
   const openEdit = (v) => {
     const therapies = getTherapyRows(v);
     const visitDate = v.visit_date?.split('T')[0] || date;
     setForm({ ...v, visit_date: visitDate, therapies: therapies.length ? therapies : [{ therapy_type: '', duration_minutes: 15 }] });
     setEditVisit(v);
+    setSelectedAppointmentId('');
     setPatSearch(`${v.first_name} ${v.last_name}`);
     setError('');
     loadPriorBalance(v.patient_id, v.id);
@@ -152,6 +178,7 @@ export default function Visits() {
     try {
       const payload = {
         ...form,
+        appointment_id: editVisit ? null : (selectedAppointmentId || null),
         therapies: validTherapies,
         // Sent for compatibility only — the server recomputes it from the patient's balance.
         payment_status: computePaymentStatus(form.fee_charged, form.amount_paid, advanceCredit),
@@ -160,7 +187,7 @@ export default function Visits() {
       const method = editVisit ? 'PUT' : 'POST';
       const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       if (!res.ok) { const e = await res.json(); throw new Error(e.error); }
-      setShowModal(false); loadVisits();
+      setShowModal(false); loadVisits(); loadTodayAppointments();
     } catch (e) { setError(e.message); }
     setSaving(false);
   };
@@ -175,10 +202,31 @@ export default function Visits() {
   };
 
   const selectPatient = (p) => {
+    setSelectedAppointmentId('');
     setForm(f => ({ ...f, patient_id: p.id }));
     setPatSearch(`${p.first_name} ${p.last_name}`);
     setPatients([]);
     loadPriorBalance(p.id, null);
+  };
+
+  const selectTodayAppointment = (appointmentId) => {
+    setSelectedAppointmentId(appointmentId);
+    const appointment = todayAppointments.find(item => String(item.id) === String(appointmentId));
+    if (!appointment) return;
+    const now = new Date();
+    const currentDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const patientName = `${appointment.first_name || ''} ${appointment.last_name || ''}`.trim();
+    setForm(f => ({
+      ...f,
+      patient_id: appointment.patient_id,
+      visit_date: currentDate,
+      visit_time: currentTime,
+      therapies: [{ therapy_type: appointment.therapy_type || '', duration_minutes: appointment.duration_minutes || 15 }],
+    }));
+    setPatSearch(patientName);
+    setPatients([]);
+    loadPriorBalance(appointment.patient_id, null);
   };
 
   const { highlightedIndex: patHighlight, setHighlightedIndex: setPatHighlight, onKeyDown: onPatSearchKeyDown } =
@@ -335,13 +383,27 @@ export default function Visits() {
 
               <div className="form-section-title">Patient & Session</div>
               <div className="form-grid form-grid-2" style={{ marginBottom: 16, position: 'relative' }}>
+                {!editVisit && (
+                  <div className="form-group">
+                    <label className="form-label">Today's Appointment</label>
+                    <select className="form-select" value={selectedAppointmentId} onChange={e => selectTodayAppointment(e.target.value)}>
+                      <option value="">{todayAppointments.length ? "Select today's appointment" : 'No appointments scheduled today'}</option>
+                      {todayAppointments.map(appointment => (
+                        <option key={appointment.id} value={appointment.id}>
+                          {appointment.appointment_time} · {appointment.first_name} {appointment.last_name} · {appointment.therapy_type || 'Treatment'}
+                        </option>
+                      ))}
+                    </select>
+                    {todayAppointmentError && <div style={{ marginTop: 4, fontSize: 12, color: 'var(--coral)' }}>{todayAppointmentError}</div>}
+                  </div>
+                )}
                 <div className="form-group" style={{ position: 'relative' }}>
                   <label className="form-label">Patient *</label>
                   <input
                     className="form-input"
                     placeholder="Search patient by name..."
                     value={patSearch}
-                    onChange={e => { setPatSearch(e.target.value); setForm(f => ({ ...f, patient_id: '' })); setPriorBalance(null); }}
+                    onChange={e => { setPatSearch(e.target.value); setSelectedAppointmentId(''); setForm(f => ({ ...f, patient_id: '' })); setPriorBalance(null); }}
                     onKeyDown={onPatSearchKeyDown}
                     disabled={!!editVisit}
                   />
@@ -400,6 +462,9 @@ export default function Visits() {
                           onChange={e => updateTherapyRow(idx, { therapy_type: e.target.value })}
                         >
                           <option value="">Select therapy type</option>
+                          {row.therapy_type && !THERAPY_TYPES.includes(row.therapy_type) && (
+                            <option value={row.therapy_type}>{row.therapy_type}</option>
+                          )}
                           {THERAPY_TYPES.filter(t => t === row.therapy_type || !otherSelected.includes(t)).map(t => (
                             <option key={t} value={t}>{t}</option>
                           ))}
