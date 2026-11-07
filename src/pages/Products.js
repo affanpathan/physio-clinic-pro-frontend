@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
+import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import { useCurrency } from '../context/CurrencyContext';
 
 const API_URL = process.env.REACT_APP_API_URL || '/api';
+const PAGE_SIZES = [15, 25, 50, 75, 100];
 
 const parseJsonResponse = async (response) => {
   const text = await response.text();
@@ -28,6 +30,9 @@ export default function Products({ clinicId }) {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [messageIsError, setMessageIsError] = useState(false);
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
 
   const fetchItems = async () => {
     setLoading(true);
@@ -41,6 +46,7 @@ export default function Products({ clinicId }) {
         throw new Error('Unexpected response from server.');
       }
       setItems(data);
+      setPage(1);
     } catch (err) {
       setItems([]);
       setMessage(err.message);
@@ -52,6 +58,16 @@ export default function Products({ clinicId }) {
   useEffect(() => {
     fetchItems();
   }, []);
+
+  const normalizedSearch = search.trim().toLowerCase();
+  const filteredItems = items.filter((item) => (
+    [item.product_name, item.description, item.clinic_name, item.clinic_id]
+      .some(value => String(value || '').toLowerCase().includes(normalizedSearch))
+  ));
+  const totalPages = Math.max(1, Math.ceil(filteredItems.length / pageSize));
+  const paginatedItems = filteredItems.slice((page - 1) * pageSize, page * pageSize);
+  const rangeStart = filteredItems.length ? (page - 1) * pageSize + 1 : 0;
+  const rangeEnd = Math.min(page * pageSize, filteredItems.length);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -147,35 +163,80 @@ export default function Products({ clinicId }) {
       </form>
 
       <div style={{ background: '#fff', padding: 16, borderRadius: 8 }}>
-        <h3>Product Records</h3>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
+          <h3 style={{ margin: 0 }}>Product Records</h3>
+          <div style={{ position: 'relative', width: '100%', maxWidth: 320 }}>
+            <Search size={15} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
+            <input
+              className="form-input"
+              type="search"
+              placeholder="Search products..."
+              aria-label="Search products"
+              value={search}
+              onChange={e => { setSearch(e.target.value); setPage(1); }}
+              style={{ paddingLeft: 32 }}
+            />
+          </div>
+        </div>
         {loading ? <div>Loading...</div> : (
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr>
-                <th style={thStyle}>Clinic</th>
-                <th style={thStyle}>Name</th>
-                <th style={thStyle}>Description</th>
-                <th style={thStyle}>Price</th>
-                <th style={thStyle}>Active</th>
-                <th style={thStyle}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((item) => (
-                <tr key={item.id}>
-                  <td style={tdStyle}>{item.clinic_name || item.clinic_id}</td>
-                  <td style={tdStyle}>{item.product_name}</td>
-                  <td style={tdStyle}>{item.description}</td>
-                  <td style={tdStyle}>{symbol}{Number(item.price || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                  <td style={tdStyle}>{item.is_active ? 'Yes' : 'No'}</td>
-                  <td style={tdStyle}>
-                    <button onClick={() => handleEdit(item)} style={secondaryButtonStyle}>Edit</button>{' '}
-                    <button onClick={() => handleDelete(item.id)} style={dangerButtonStyle}>Delete</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          filteredItems.length === 0 ? (
+            <div style={{ padding: 20, color: '#64748b' }}>{search ? 'No products match your search.' : 'No products found.'}</div>
+          ) : (
+            <>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr>
+                      <th style={thStyle}>Clinic</th>
+                      <th style={thStyle}>Name</th>
+                      <th style={thStyle}>Description</th>
+                      <th style={thStyle}>Price</th>
+                      <th style={thStyle}>Active</th>
+                      <th style={thStyle}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paginatedItems.map((item) => (
+                      <tr key={item.id}>
+                        <td style={tdStyle}>{item.clinic_name || item.clinic_id}</td>
+                        <td style={tdStyle}>{item.product_name}</td>
+                        <td style={tdStyle}>{item.description}</td>
+                        <td style={tdStyle}>{symbol}{Number(item.price || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        <td style={tdStyle}>{item.is_active ? 'Yes' : 'No'}</td>
+                        <td style={tdStyle}>
+                          <button onClick={() => handleEdit(item)} style={secondaryButtonStyle}>Edit</button>{' '}
+                          <button onClick={() => handleDelete(item.id)} style={dangerButtonStyle}>Delete</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 4px 4px', flexWrap: 'wrap', gap: 10 }}>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <label htmlFor="products-page-size" style={{ fontSize: 13, color: '#666', margin: 0 }}>Rows per page</label>
+                  <select
+                    id="products-page-size"
+                    value={pageSize}
+                    onChange={e => { setPageSize(Number(e.target.value)); setPage(1); }}
+                    style={{ ...inputStyle, width: 'auto', minWidth: 90 }}
+                  >
+                    {PAGE_SIZES.map(size => <option key={size} value={size}>{size}</option>)}
+                  </select>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <span style={{ fontSize: 13, color: '#666' }}>Showing {rangeStart}–{rangeEnd} of {filteredItems.length}</span>
+                  <button type="button" aria-label="Previous page" title="Previous page" onClick={() => setPage(current => Math.max(1, current - 1))} disabled={page <= 1} style={secondaryIconButtonStyle}>
+                    <ChevronLeft size={16} />
+                  </button>
+                  <span style={{ fontSize: 13 }}>Page {page} of {totalPages}</span>
+                  <button type="button" aria-label="Next page" title="Next page" onClick={() => setPage(current => Math.min(totalPages, current + 1))} disabled={page >= totalPages} style={secondaryIconButtonStyle}>
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
+              </div>
+            </>
+          )
         )}
       </div>
     </div>
@@ -200,6 +261,18 @@ const buttonStyle = {
 
 const secondaryButtonStyle = {
   padding: '8px 12px',
+  border: '1px solid #cbd5e1',
+  borderRadius: 6,
+  background: '#fff',
+  cursor: 'pointer',
+};
+
+const secondaryIconButtonStyle = {
+  width: 34,
+  height: 34,
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
   border: '1px solid #cbd5e1',
   borderRadius: 6,
   background: '#fff',
